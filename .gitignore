@@ -1,0 +1,54 @@
+# ----- Python -----
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ----- Environments -----
+.venv/
+.env
+.env.*
+!.env.example
+
+# ----- Django -----
+*.log
+*.pot
+*.pyc
+media/
+staticfiles/
+
+# SQLite DB (keep if you want sample data, else uncomment)
+# db.sqlite3
+
+# Migrations cache
+mapa/migrations/__pycache__/
+setup/__pycache__/
+
+# ----- IDE / Editors -----
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+
+# ----- OS Files -----
+.DS_Store
+Thumbs.db
+
+# ----- Node / Front-end (if added later) -----
+node_modules/
+*.lock
+
+# ----- Coverage / Testing -----
+.coverage
+htmlcov/
+.tox/
+pytest_cache/
+
+# ----- Build / Dist -----
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# ----- Misc -----
+*.swp
+*.swo

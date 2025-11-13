@@ -1,0 +1,256 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Biomas - {{ mapa.nome }}</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <style>
+    body { margin:0; font-family: system-ui,sans-serif; }
+    header { background:#111827; color:#fff; padding:.6rem 1rem; display:flex; gap:1rem; align-items:center; }
+    header a { color:#93c5fd; text-decoration:none; }
+  #map { height: calc(100vh - 58px); z-index: 1; }
+  .panel { position: fixed; top:70px; right:1rem; background:#fff; padding:.75rem; border-radius:10px; width:300px; box-shadow:0 4px 14px rgba(0,0,0,.18); font-size:.85rem; z-index: 1000; }
+    .panel input, .panel select { width:100%; margin-bottom:.5rem; padding:.45rem .5rem; border:1px solid #d1d5db; border-radius:8px; }
+    .panel button { width:100%; padding:.5rem; background:#2563eb; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+    .bioma-item { padding:.4rem .5rem; border:1px solid #e5e7eb; border-radius:6px; margin-bottom:.4rem; display:flex; justify-content:space-between; align-items:center; }
+    .bioma-item span { display:inline-block; }
+    .bioma-color { width:18px; height:18px; border-radius:4px; border:1px solid #ccc; margin-right:.4rem; }
+    .danger { background:#b91c1c; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{% url 'map_editor' mapa.id %}">← Voltar</a>
+    <div style="flex:1">Biomas de {{ mapa.nome }}</div>
+    <a href="{% url 'logout' %}">Sair</a>
+  </header>
+  <div id="map"></div>
+  <div class="panel">
+    <h3>Novo Bioma</h3>
+    <input type="text" id="bioma_nome" placeholder="Nome" />
+    <select id="bioma_tipo">
+      <option value="1">Ártico</option>
+      <option value="2">Costeiro</option>
+      <option value="3">Deserto</option>
+      <option value="4">Floresta</option>
+      <option value="5">Campo</option>
+      <option value="6">Morro</option>
+      <option value="7">Montanha</option>
+      <option value="8">Pântano</option>
+      <option value="9">Subterrâneo</option>
+      <option value="10">Urbano</option>
+      <option value="11">Marítimo</option>
+    </select>
+    <input type="color" id="bioma_cor" value="#88cc66" />
+  <button id="salvar_bioma" disabled>Salvar Bioma (1+ polígonos)</button>
+  <button id="atualizar_bioma" style="margin-top:.4rem;display:none;background:#111827;">Atualizar Bioma</button>
+  <button id="cancelar_edicao" style="margin-top:.4rem;display:none;background:#6b7280;">Cancelar Edição</button>
+    <div id="msg" style="margin-top:.4rem;font-size:.75rem;color:#065f46"></div>
+
+  <h4>Existentes</h4>
+  <div id="lista_biomas"></div>
+  <p style="margin-top:.6rem; color:#6b7280;">Clique em "Editar" para carregar polígonos e ajustar.</p>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script>
+    function getCookie(name) { const v=document.cookie.match('(^|;)\\s*'+name+'\\s*=\\s*([^;]+)'); return v? v.pop():''; }
+    const csrftoken = getCookie('csrftoken');
+    const imgUrl = '{{ mapa.imagem.url }}';
+    const imgWidth = parseInt('{{ mapa.largura|default:"0" }}',10);
+    const imgHeight = parseInt('{{ mapa.altura|default:"0" }}',10);
+    const MAP_ID = parseInt('{{ mapa.id }}',10);
+
+    const map = L.map('map', { crs: L.CRS.Simple, minZoom:-2 });
+    const southWest = map.unproject([0, imgHeight], 0);
+    const northEast = map.unproject([imgWidth, 0], 0);
+    const bounds = new L.LatLngBounds(southWest, northEast);
+    L.imageOverlay(imgUrl, bounds).addTo(map);
+    map.fitBounds(bounds);
+
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    const drawControl = new L.Control.Draw({
+      draw: {
+        polygon: { allowIntersection: false, showArea:false },
+        polyline: false, rectangle: false, circle: false, circlemarker:false, marker:false
+      },
+      edit: { featureGroup: drawnItems }
+    });
+    map.addControl(drawControl);
+
+  let currentPolygons = []; // cada item: [[x,y], [x,y] ...]
+  let editingBioma = null; // objeto do bioma em edição
+
+    map.on(L.Draw.Event.CREATED, function (e) {
+      const layer = e.layer;
+      drawnItems.addLayer(layer);
+      // converter latlngs para coordenadas de imagem
+      const latlngs = layer.getLatLngs()[0]; // primeiro anel
+      const poly = latlngs.map(ll => {
+        const p = map.project(ll,0);
+        return [Math.round(p.x), Math.round(p.y)];
+      });
+      currentPolygons.push(poly);
+      document.getElementById('salvar_bioma').disabled = currentPolygons.length === 0;
+    });
+
+    document.getElementById('salvar_bioma').addEventListener('click', () => {
+      const nome = document.getElementById('bioma_nome').value.trim();
+      const tipo = document.getElementById('bioma_tipo').value;
+      const cor = document.getElementById('bioma_cor').value;
+      const msg = document.getElementById('msg');
+      if(!nome || currentPolygons.length===0){ msg.style.color='#b91c1c'; msg.textContent='Defina nome e pelo menos um polígono.'; return; }
+      fetch('/api/biomas/', {
+        method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},
+        body: JSON.stringify({ nome, tipo, cor, mapa: MAP_ID, poligonos: [currentPolygons] }) // lista de polígonos (aqui 1 conjunto)
+      })
+      .then(r=>r.json().then(j=>[r.ok,j]))
+      .then(([ok,data])=>{
+        if(!ok) throw new Error(JSON.stringify(data));
+        msg.style.color='#065f46'; msg.textContent='Bioma salvo.';
+        addBiomaToList(data);
+        // desenhar com fill
+        drawBiomaPolygons(data);
+        // reset
+        currentPolygons=[]; drawnItems.clearLayers();
+        document.getElementById('salvar_bioma').disabled=true;
+        document.getElementById('bioma_nome').value='';
+      })
+      .catch(err=>{ msg.style.color='#b91c1c'; msg.textContent='Erro: '+err.message; });
+    });
+
+    function polygonsFromDrawn(){
+      const polys = [];
+      drawnItems.eachLayer(layer => {
+        if (typeof layer.getLatLngs !== 'function') return;
+        const rings = layer.getLatLngs();
+        if (!rings || !rings[0]) return;
+        const ring = rings[0];
+        const poly = ring.map(ll => {
+          const p = map.project(ll,0);
+          return [Math.round(p.x), Math.round(p.y)];
+        });
+        polys.push(poly);
+      });
+      return polys;
+    }
+
+    document.getElementById('atualizar_bioma').addEventListener('click', () => {
+      if(!editingBioma){ return; }
+      const nome = document.getElementById('bioma_nome').value.trim();
+      const tipo = document.getElementById('bioma_tipo').value;
+      const cor = document.getElementById('bioma_cor').value;
+      const msg = document.getElementById('msg');
+      const editedPolys = polygonsFromDrawn();
+      if(!nome || editedPolys.length===0){ msg.style.color='#b91c1c'; msg.textContent='Nome e 1+ polígonos.'; return; }
+      fetch(`/api/biomas/${editingBioma.id}/`, {
+        method:'PUT', headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},
+        body: JSON.stringify({ nome, tipo, cor, mapa: MAP_ID, poligonos: [editedPolys] })
+      })
+      .then(r=>r.json().then(j=>[r.ok,j]))
+      .then(([ok,data])=>{
+        if(!ok) throw new Error(JSON.stringify(data));
+        msg.style.color='#065f46'; msg.textContent='Bioma atualizado.';
+        // remove camadas antigas
+        if (biomaLayers[editingBioma.id]) { biomaLayers[editingBioma.id].forEach(layer => map.removeLayer(layer)); delete biomaLayers[editingBioma.id]; }
+        drawBiomaPolygons(data);
+        refreshBiomaList();
+        cancelEditing();
+      })
+      .catch(err=>{ msg.style.color='#b91c1c'; msg.textContent='Erro: '+err.message; });
+    });
+
+    document.getElementById('cancelar_edicao').addEventListener('click', cancelEditing);
+
+    function cancelEditing(){
+      editingBioma = null;
+      currentPolygons=[]; drawnItems.clearLayers();
+      document.getElementById('bioma_nome').value='';
+      document.getElementById('salvar_bioma').style.display='';
+      document.getElementById('atualizar_bioma').style.display='none';
+      document.getElementById('cancelar_edicao').style.display='none';
+      document.getElementById('msg').textContent='';
+      document.getElementById('salvar_bioma').disabled=true;
+    }
+
+    const biomaLayers = {}; // rastreia camadas por bioma
+    function drawBiomaPolygons(b){
+      // remover camadas antigas deste bioma
+      if (biomaLayers[b.id]) {
+        biomaLayers[b.id].forEach(layer => map.removeLayer(layer));
+      }
+      biomaLayers[b.id] = [];
+      (b.poligonos||[]).forEach(polySet => {
+        polySet.forEach(poly => {
+          const latlngs = poly.map(pt => map.unproject(pt,0));
+          const layer = L.polygon(latlngs, {color:b.cor||'#3388ff', weight:1, fillOpacity:0.25}).addTo(map).bindTooltip(b.nome);
+          biomaLayers[b.id].push(layer);
+        });
+      });
+    }
+
+    function addBiomaToList(b){
+      const cont = document.getElementById('lista_biomas');
+      const div = document.createElement('div'); div.className='bioma-item';
+      div.innerHTML = `<span><span class='bioma-color' style='background:${b.cor}'></span>${b.nome}</span>`+
+        `<div style='display:flex;gap:.4rem;'>`+
+        `<button class='edit' data-id='${b.id}' style='padding:.35rem .6rem;border:none;background:#2563eb;color:#fff;border-radius:6px;cursor:pointer;'>Editar</button>`+
+        `<button class='danger' data-id='${b.id}' style='padding:.35rem .6rem;border:none;color:#fff;border-radius:6px;cursor:pointer;'>X</button>`+
+        `</div>`;
+      div.querySelector('button.danger').addEventListener('click', () => {
+        if(!confirm('Remover bioma?')) return;
+        fetch(`/api/biomas/${b.id}/`, { method:'DELETE', headers:{'X-CSRFToken':csrftoken} })
+          .then(r=>{ if(r.ok){
+                // remove polígonos do mapa também
+                if (biomaLayers[b.id]) { biomaLayers[b.id].forEach(layer => map.removeLayer(layer)); delete biomaLayers[b.id]; }
+                div.remove();
+              } else alert('Erro ao deletar'); });
+      });
+      div.querySelector('button.edit').addEventListener('click', () => { startEditing(b); });
+      cont.appendChild(div);
+    }
+
+    function startEditing(b){
+      editingBioma = b;
+      drawnItems.clearLayers();
+      currentPolygons = [];
+      document.getElementById('bioma_nome').value = b.nome;
+      document.getElementById('bioma_tipo').value = b.tipo;
+      document.getElementById('bioma_cor').value = b.cor || '#88cc66';
+      (b.poligonos||[]).forEach(polySet => {
+        polySet.forEach(poly => {
+          currentPolygons.push(poly);
+          const latlngs = poly.map(pt => map.unproject(pt,0));
+          const layer = L.polygon(latlngs, {color:b.cor||'#3388ff', weight:1, fillOpacity:0.25});
+          drawnItems.addLayer(layer);
+        });
+      });
+      document.getElementById('salvar_bioma').style.display='none';
+      document.getElementById('atualizar_bioma').style.display='';
+      document.getElementById('cancelar_edicao').style.display='';
+      document.getElementById('salvar_bioma').disabled = currentPolygons.length===0;
+      document.getElementById('msg').textContent='Editando bioma';
+    }
+
+    function refreshBiomaList(){
+      const cont = document.getElementById('lista_biomas');
+      cont.innerHTML='';
+      fetch(`/api/biomas/?mapa=${MAP_ID}`)
+        .then(r=>r.json())
+        .then(data => { (data.results||data).forEach(b => { addBiomaToList(b); }); });
+    }
+
+    // Carregar biomas existentes
+    refreshBiomaList();
+    fetch(`/api/biomas/?mapa=${MAP_ID}`)
+      .then(r=>r.json())
+      .then(data => { (data.results || data).forEach(b => drawBiomaPolygons(b)); });
+  </script>
+</body>
+</html>

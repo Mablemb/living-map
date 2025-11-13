@@ -1,0 +1,36 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login - RPG Manager</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#f6f7fb; margin:0; display:flex; min-height:100vh; align-items:center; justify-content:center; }
+    .card { background:#fff; padding:2rem; border-radius:12px; width: 360px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+    h1 { margin:0 0 1rem; font-size:1.3rem; }
+    label { display:block; margin:.5rem 0 .25rem; color:#333; }
+    input[type="text"], input[type="password"] { width:100%; padding:.6rem .7rem; border:1px solid #ddd; border-radius:8px; }
+    button { margin-top:1rem; width:100%; padding:.7rem; background:#3b82f6; border:none; color:#fff; border-radius:8px; cursor:pointer; }
+    button:hover { background:#2563eb; }
+    .error { color:#b91c1c; margin-bottom:.75rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Entrar</h1>
+    {% if form.errors %}
+      <div class="error">Usuário ou senha inválidos.</div>
+    {% endif %}
+    <form method="post" action="{% url 'login' %}">
+      {% csrf_token %}
+      <label>Usuário</label>
+      {{ form.username }}
+      <label>Senha</label>
+      {{ form.password }}
+      <button type="submit">Login</button>
+      <input type="hidden" name="next" value="{{ next }}" />
+    </form>
+  </div>
+</body>
+</html>

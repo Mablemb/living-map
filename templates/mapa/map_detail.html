@@ -1,0 +1,193 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ mapa.nome }} - Editor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin:0; }
+    header { background:#111827; color:#fff; padding: .75rem 1rem; display:flex; gap:1rem; align-items:center; }
+    header a { color:#93c5fd; text-decoration:none; }
+    #map { height: calc(100vh - 56px); }
+    .panel { position: fixed; right: 1rem; top: 70px; background:#fff; padding:.75rem; border-radius:10px; border:1px solid #e5e7eb; box-shadow:0 4px 14px rgba(0,0,0,.08); width: 280px; z-index: 1000; }
+    .panel h3 { margin:.2rem 0 .6rem; }
+    .panel input, .panel select { width:100%; padding:.45rem .5rem; border:1px solid #d1d5db; border-radius:8px; margin-bottom:.5rem; }
+    .panel button { width:100%; padding:.5rem; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; }
+    .msg { margin-top:.4rem; font-size:.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="{% url 'map_list' %}">← Meus Mapas</a>
+    <div style="flex:1">{{ mapa.nome }}</div>
+    <a href="{% url 'bioma_editor' mapa.id %}" style="margin-right:1rem;color:#93c5fd;">Editar Biomas</a>
+    <a href="{% url 'logout' %}">Sair</a>
+  </header>
+
+  <div id="map"></div>
+  <div class="panel">
+    <h3>Novo Assentamento</h3>
+    <label>X</label>
+    <input id="pos_x" type="number" step="1" />
+    <label>Y</label>
+    <input id="pos_y" type="number" step="1" />
+    <label>Nome</label>
+    <input id="nome" type="text" />
+    <label>Tipo</label>
+    <select id="tipo">
+      <option value="V">Vilarejo</option>
+      <option value="C">Cidade</option>
+      <option value="M">Metrópole</option>
+    </select>
+    <label>Bioma (opcional se polígonos definem)</label>
+    <select id="bioma_select"><option value="">-- auto --</option></select>
+    <button id="criar">Criar</button>
+    <div id="msg" class="msg"></div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    function getCookie(name) {
+      const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+      return v ? v.pop() : '';
+    }
+    const csrftoken = getCookie('csrftoken');
+
+  const imgUrl = '{{ mapa.imagem.url }}';
+  const imgWidth = parseInt('{{ mapa.largura|default:"0" }}', 10);
+  const imgHeight = parseInt('{{ mapa.altura|default:"0" }}', 10);
+  const MAP_ID = parseInt('{{ mapa.id }}', 10);
+
+    const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2 });
+    const southWest = map.unproject([0, imgHeight], 0);
+    const northEast = map.unproject([imgWidth, 0], 0);
+    const bounds = new L.LatLngBounds(southWest, northEast);
+    L.imageOverlay(imgUrl, bounds).addTo(map);
+    map.fitBounds(bounds);
+
+    // Clique para capturar X/Y
+    map.on('click', (e) => {
+      const p = map.project(e.latlng, 0);
+      document.getElementById('pos_x').value = Math.round(p.x);
+      document.getElementById('pos_y').value = Math.round(p.y);
+    });
+
+    // Carrega biomas para seleção manual e desenhar polígonos
+    fetch(`/api/biomas/?mapa=${MAP_ID}`)
+      .then(r=>r.json())
+      .then(data => {
+        const sel = document.getElementById('bioma_select');
+        (data.results || data).forEach(b => {
+          const opt = document.createElement('option');
+            opt.value = b.id; opt.textContent = `${b.nome} (${b.tipo})`; sel.appendChild(opt);
+        });
+      });
+
+    let settlementLayerGroup = L.layerGroup().addTo(map);
+    function loadSettlements(){
+      settlementLayerGroup.clearLayers();
+      fetch(`/api/assentamentos/markers/?mapa=${MAP_ID}`)
+        .then(r => r.json())
+        .then(data => {
+          data.forEach(a => {
+            if (a.pos_x == null || a.pos_y == null) return;
+            const latlng = map.unproject([a.pos_x, a.pos_y], 0);
+            const tooltip = `${a.nome} — ${a.tipo_display || a.tipo} (pers.: ${a.personagem_count ?? 0})`;
+            const marker = L.marker(latlng).addTo(settlementLayerGroup).bindTooltip(tooltip, {permanent:false});
+            marker.on('click', () => {
+              fetch(`/api/assentamentos/${a.id}/`)
+                .then(r => r.json())
+                .then(det => {
+                  const nomes = (det.personagens || []).map(p => p.nome).join(', ');
+                  marker.bindPopup(`<b>${det.nome}</b><br>Tipo: ${det.tipo}<br>Personagens: ${nomes || '—'}`).openPopup();
+                });
+            });
+          });
+        });
+    }
+    loadSettlements();
+
+    // Toggle de visualização de biomas
+    let biomaLayers = {};
+    let biomasVisible = false;
+    const biomaToggleBtn = document.createElement('button');
+    biomaToggleBtn.textContent = 'Mostrar Biomas';
+    biomaToggleBtn.style.cssText = 'position:fixed;left:1rem;top:70px;z-index:1100;padding:.55rem .9rem;background:#111827;color:#fff;border:none;border-radius:8px;cursor:pointer;';
+    document.body.appendChild(biomaToggleBtn);
+
+    function drawBioma(b){
+      if (biomaLayers[b.id]) { biomaLayers[b.id].forEach(l=>map.removeLayer(l)); }
+      biomaLayers[b.id] = [];
+      (b.poligonos||[]).forEach(polySet => {
+        polySet.forEach(poly => {
+          const latlngs = poly.map(pt => map.unproject(pt,0));
+          const layer = L.polygon(latlngs, {color:b.cor||'#3388ff', weight:1, fillOpacity:0.2});
+          biomaLayers[b.id].push(layer);
+          if (biomasVisible) layer.addTo(map).bindTooltip(b.nome);
+        });
+      });
+    }
+
+    function setBiomasVisible(visible){
+      biomasVisible = visible;
+      Object.values(biomaLayers).forEach(arr => arr.forEach(l => { if (visible){ l.addTo(map); } else { map.removeLayer(l); } }));
+      biomaToggleBtn.textContent = visible ? 'Ocultar Biomas' : 'Mostrar Biomas';
+    }
+
+    biomaToggleBtn.addEventListener('click', () => {
+      setBiomasVisible(!biomasVisible);
+    });
+
+    // Carrega biomas (após escolher se exibir, adiciona
+    fetch(`/api/biomas/?mapa=${MAP_ID}`)
+      .then(r=>r.json())
+      .then(data => {
+        (data.results||data).forEach(drawBioma);
+      });
+
+    // Criar novo assentamento
+    document.getElementById('criar').addEventListener('click', () => {
+      const pos_x = parseFloat(document.getElementById('pos_x').value);
+      const pos_y = parseFloat(document.getElementById('pos_y').value);
+      const nome = document.getElementById('nome').value.trim();
+      const tipo = document.getElementById('tipo').value;
+      const msg = document.getElementById('msg');
+
+      if (!nome || isNaN(pos_x) || isNaN(pos_y)) {
+        msg.style.color = '#b91c1c';
+        msg.textContent = 'Preencha nome e clique no mapa para X/Y.';
+        return;
+      }
+
+      const biomaId = document.getElementById('bioma_select').value;
+      const payload = { nome, tipo, pos_x, pos_y, mapa: MAP_ID };
+      if (biomaId) {
+        // backend espera lista M2M -> só conseguimos setar após criar se quisermos REST puro;
+        // alternativa simples: enviar um campo custom e tratar depois (não implementado agora)
+        payload._bioma_ids = [parseInt(biomaId,10)];
+      }
+      fetch('/api/assentamentos/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json().then(j => [r.ok, j]))
+      .then(([ok, data]) => {
+        if (!ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
+        msg.style.color = '#065f46';
+        msg.textContent = 'Assentamento criado!';
+        const latlng = map.unproject([data.pos_x, data.pos_y], 0);
+        L.marker(latlng).addTo(settlementLayerGroup).bindTooltip(`${data.nome}`, {permanent:false});
+        document.getElementById('nome').value = '';
+        loadSettlements(); // recarrega para atualizar contagens/biomas
+      })
+      .catch(err => {
+        msg.style.color = '#b91c1c';
+        msg.textContent = 'Erro: ' + err.message;
+      });
+    });
+  </script>
+</body>
+</html>

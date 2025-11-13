@@ -1,0 +1,72 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Meus Mapas - RPG Manager</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin:0; background:#f7fafc; }
+    header { background:#111827; color:#fff; padding:1rem 2rem; display:flex; justify-content:space-between; align-items:center; }
+    .container { max-width: 1100px; margin: 1rem auto 2rem; padding: 0 1rem; }
+    h1 { margin:0; font-size:1.3rem; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; box-shadow: 0 4px 14px rgba(0,0,0,.05); }
+    .thumb { display:block; width:100%; height:160px; object-fit:cover; background:#e5e7eb; }
+    .pad { padding:.75rem 1rem; }
+    .row { display:flex; gap:.5rem; align-items:center; justify-content:space-between; }
+    .muted { color:#6b7280; font-size:.9rem; }
+    form.inline { display:flex; gap:.5rem; align-items:center; }
+    input[type="text"], input[type="file"] { padding:.4rem .5rem; border:1px solid #d1d5db; border-radius:8px; }
+    button { padding:.45rem .7rem; background:#111827; color:#fff; border:none; border-radius:8px; cursor:pointer; }
+    button.delete { background:#b91c1c; }
+    a.btn { padding:.45rem .7rem; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Meus Mapas</h1>
+    <div>
+      <a href="{% url 'logout' %}" class="btn" style="background:#6b7280">Sair</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <h2>Novo mapa</h2>
+    <form class="inline" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="text" name="nome" placeholder="Nome do mapa" required />
+      <input type="file" name="imagem" accept="image/*" required />
+      <button type="submit">Enviar</button>
+    </form>
+
+    <h2 style="margin-top:1.2rem;">Mapas existentes</h2>
+    <div class="grid">
+      {% for m in mapas %}
+        <div class="card">
+          {% if m.imagem %}
+            <img src="{{ m.imagem.url }}" class="thumb" alt="{{ m.nome }}" />
+          {% else %}
+            <div class="thumb"></div>
+          {% endif %}
+          <div class="pad">
+            <div class="row">
+              <strong>{{ m.nome }}</strong>
+              <span class="muted">{{ m.largura }}×{{ m.altura }}px</span>
+            </div>
+            <div class="row" style="margin-top:.6rem;">
+              <a class="btn" href="{% url 'map_editor' m.id %}">Abrir</a>
+              <form action="{% url 'map_delete' m.id %}" method="post" onsubmit="return confirm('Deletar este mapa?');">
+                {% csrf_token %}
+                <button class="delete" type="submit">Deletar</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% empty %}
+        <p class="muted">Nenhum mapa ainda. Envie um usando o formulário acima.</p>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Serviço para a aplicação Django utilizando SQLite (dev)
   web:
@@ -9,8 +7,15 @@ services:
     # Monta o projeto para live-reload e persistir db.sqlite3/media
     volumes:
       - .:/usr/src/app
+      - static_volume:/usr/src/app/staticfiles # Novo: Persiste arquivos estáticos
+      - media_volume:/usr/src/app/media        # Novo: Persiste arquivos de mídia
     # Carrega variáveis do arquivo .env (não commitado)
     env_file:
       - .env
     working_dir: /usr/src/app
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: gunicorn setup.wsgi:application --bind 0.0.0.0:8000
+
+volumes:
+  postgres_data:
+  static_volume:  # Volume para arquivos estáticos
+  media_volume:   # Volume para uploads de usuários

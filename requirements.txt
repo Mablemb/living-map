@@ -3,7 +3,9 @@ Django==5.2.8
 django-filter==25.2
 djangorestframework==3.16.1
 dotenv==0.9.9
+gunicorn==23.0.0
 Markdown==3.10
+packaging==25.0
 pillow==10.4.0
 python-dotenv==1.2.1
 sqlparse==0.5.3

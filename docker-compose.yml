@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  # Serviço para a aplicação Django utilizando SQLite (dev)
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    # Monta o projeto para live-reload e persistir db.sqlite3/media
+    volumes:
+      - .:/usr/src/app
+    # Carrega variáveis do arquivo .env (não commitado)
+    env_file:
+      - .env
+    working_dir: /usr/src/app
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"

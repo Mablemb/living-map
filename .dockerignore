@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.sqlite
+.git/
+.gitignore
+.venv/
+venv/
+.env
+*.log
+media/cache/
+node_modules/
+dist/
+build/
+README.md

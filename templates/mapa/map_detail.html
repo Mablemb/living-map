@@ -7,15 +7,24 @@
   <title>{{ mapa.nome }} - Editor</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { font-family: system-ui, sans-serif; margin:0; }
+    html, body { height: 100%; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin:0; background:#f8fafc; }
     header { background:#111827; color:#fff; padding: .75rem 1rem; display:flex; gap:1rem; align-items:center; }
     header a { color:#93c5fd; text-decoration:none; }
     #map { height: calc(100vh - 56px); }
-    .panel { position: fixed; right: 1rem; top: 70px; background:#fff; padding:.75rem; border-radius:10px; border:1px solid #e5e7eb; box-shadow:0 4px 14px rgba(0,0,0,.08); width: 280px; z-index: 1000; }
-    .panel h3 { margin:.2rem 0 .6rem; }
-    .panel input, .panel select { width:100%; padding:.45rem .5rem; border:1px solid #d1d5db; border-radius:8px; margin-bottom:.5rem; }
-    .panel button { width:100%; padding:.5rem; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; }
-    .msg { margin-top:.4rem; font-size:.9rem; }
+    .panel { position: fixed; right: 1rem; top: 70px; background:#ffffff; padding: .9rem; border-radius:12px; border:1px solid #e5e7eb; box-shadow:0 8px 24px rgba(0,0,0,.10); width: 320px; z-index: 1000; max-height: calc(100vh - 86px); overflow-y: auto; overflow-x: hidden; }
+    .panel h3 { margin:.2rem 0 .8rem; font-size:1.05rem; }
+    .panel label { display:block; margin:.25rem 0 .25rem; font-size:.9rem; color:#111827; }
+    .panel input, .panel select { width:100%; padding:.45rem .55rem; border:1px solid #d1d5db; border-radius:8px; margin-bottom:.6rem; background:#fff; }
+    .panel .row-inline { display:grid; grid-template-columns: 1fr 1fr; gap:.6rem; }
+    .panel .row-inline .field { display:flex; flex-direction:column; }
+    .panel .actions { position: sticky; bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,.96) 60%, rgba(255,255,255,0)); padding-top:.5rem; display:grid; grid-template-columns: 1fr 1fr; gap:.6rem; align-items:center; }
+    .panel button { width:100%; padding:.6rem; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; font-weight:600; }
+    .panel button.secondary { background:#f3f4f6; color:#111827; border:1px solid #e5e7eb; }
+    .panel button.secondary:hover { background:#e5e7eb; }
+    .panel button:hover { background:#1d4ed8; }
+    .msg { margin-top:.5rem; font-size:.9rem; min-height: 1.2rem; }
   </style>
 </head>
 <body>
@@ -29,10 +38,16 @@
   <div id="map"></div>
   <div class="panel">
     <h3>Novo Assentamento</h3>
-    <label>X</label>
-    <input id="pos_x" type="number" step="1" />
-    <label>Y</label>
-    <input id="pos_y" type="number" step="1" />
+    <div class="row-inline">
+      <div class="field">
+        <label>X</label>
+        <input id="pos_x" type="number" step="1" />
+      </div>
+      <div class="field">
+        <label>Y</label>
+        <input id="pos_y" type="number" step="1" />
+      </div>
+    </div>
     <label>Nome</label>
     <input id="nome" type="text" />
     <label>Tipo</label>
@@ -41,10 +56,81 @@
       <option value="C">Cidade</option>
       <option value="M">Metrópole</option>
     </select>
+    <label>Característica</label>
+    <select id="caracteristica">
+      <option value="1">Muralhas Fortificadas</option>
+      <option value="2" selected>Parques, Jardins e Vegetação Abundante</option>
+      <option value="3">Lama, lixo e imundice</option>
+      <option value="4">Cemitério extenso</option>
+      <option value="5">Nevoeiro Persistente</option>
+      <option value="6">Sons e Fumaça de Forjas</option>
+      <option value="7">Canais substituem ruas; muitas pontes</option>
+      <option value="8">Fronteira com penhasco</option>
+      <option value="9">Ruas e construções bem mantidas e limpas</option>
+      <option value="10">Ruínas antigas em meio ao assentamento</option>
+      <option value="11">Mercado/Bazar com aromas e itens exóticos</option>
+      <option value="12">Estrutura impressionante (Castelo, Templo, Círculo, Zigurate)</option>
+    </select>
+    <label>Fama</label>
+    <select id="fama">
+      <option value="1" selected>Comida Deliciosa</option>
+      <option value="2">População Rude</option>
+      <option value="3">População Amigável</option>
+      <option value="4">Artistas e Escritores</option>
+      <option value="5">Grande Herói/Salvador local</option>
+      <option value="6">Flores</option>
+      <option value="7">Festival Anual</option>
+      <option value="8">Assombrações</option>
+      <option value="9">Conjuradores de Magia</option>
+      <option value="10">Decadência</option>
+      <option value="11">Piedade</option>
+      <option value="12">Apostas</option>
+      <option value="13">Aversão a Religião</option>
+      <option value="14">Educação</option>
+      <option value="15">Vinhos/Vinhedos</option>
+      <option value="16">Moda/Alta Costura</option>
+      <option value="17">Intriga Política</option>
+      <option value="18">Guildas Poderosas</option>
+      <option value="19">Patriotismo</option>
+      <option value="20">Ruínas Antigas</option>
+    </select>
+    <label>Calamidade</label>
+    <select id="calamidade">
+      <option value="1" selected>Infestação de Monstros</option>
+      <option value="2">Suspeita de assassinato do líder local</option>
+      <option value="3">Guerra iminente entre guildas/gangues</option>
+      <option value="4">Pragas/Fome provocam rebelião</option>
+      <option value="5">Monstros atacam quem entra/saí</option>
+      <option value="6">Disputas comerciais criam crise econômica</option>
+      <option value="7">Desastre natural ameaça o assentamento</option>
+      <option value="8">Profecia terrível assusta moradores</option>
+      <option value="9">População em alistamento para guerra</option>
+      <option value="10">Violência por intrigas políticas/religiosas</option>
+      <option value="11">Assentamento sob cerco</option>
+      <option value="12">Escândalo ameaça famílias nobres</option>
+    </select>
+    <label>Líder</label>
+    <select id="lider">
+      <option value="1" selected>Líder/Conselho justos e respeitados</option>
+      <option value="2">Tirano Temido</option>
+      <option value="3">Covarde manipulado por outros</option>
+      <option value="4">Líder ilegítimo e rejeitado</option>
+      <option value="5">Monstro poderoso</option>
+      <option value="6">Conspiradores anônimos misteriosos</option>
+      <option value="7">Liderança em disputa aberta e violenta</option>
+      <option value="8">Conselho disputado incapaz de decidir</option>
+      <option value="9">Líder conhecido por imbecilidade</option>
+      <option value="10">Líder moribundo; sucessão disputada</option>
+      <option value="11">Mão-de-ferro respeitado</option>
+      <option value="12">Líder/Conselho religioso</option>
+    </select>
     <label>Bioma (opcional se polígonos definem)</label>
     <select id="bioma_select"><option value="">-- auto --</option></select>
-    <button id="criar">Criar</button>
-    <div id="msg" class="msg"></div>
+    <div class="actions">
+      <button id="randomizar" class="secondary" type="button">Randomizar</button>
+      <button id="criar" type="button">Criar</button>
+      <div id="msg" class="msg" style="grid-column: 1 / -1;"></div>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -153,6 +239,10 @@
       const pos_y = parseFloat(document.getElementById('pos_y').value);
       const nome = document.getElementById('nome').value.trim();
       const tipo = document.getElementById('tipo').value;
+      const caracteristica = document.getElementById('caracteristica').value;
+      const fama = document.getElementById('fama').value;
+      const calamidade = document.getElementById('calamidade').value;
+      const lider = document.getElementById('lider').value;
       const msg = document.getElementById('msg');
 
       if (!nome || isNaN(pos_x) || isNaN(pos_y)) {
@@ -162,7 +252,7 @@
       }
 
       const biomaId = document.getElementById('bioma_select').value;
-      const payload = { nome, tipo, pos_x, pos_y, mapa: MAP_ID };
+      const payload = { nome, tipo, caracteristica, fama, calamidade, lider, pos_x, pos_y, mapa: MAP_ID };
       if (biomaId) {
         // backend espera lista M2M -> só conseguimos setar após criar se quisermos REST puro;
         // alternativa simples: enviar um campo custom e tratar depois (não implementado agora)
@@ -187,6 +277,28 @@
         msg.style.color = '#b91c1c';
         msg.textContent = 'Erro: ' + err.message;
       });
+    });
+
+    // Randomizar campos (exceto Nome e X/Y)
+    function randomizeSelect(id, { excludeEmpty=true } = {}){
+      const el = document.getElementById(id);
+      if (!el) return;
+      const options = Array.from(el.options).filter(o => !o.disabled && !o.hidden && (!excludeEmpty || o.value !== ''));
+      if (options.length === 0) return;
+      const choice = options[Math.floor(Math.random() * options.length)];
+      el.value = choice.value;
+    }
+
+    document.getElementById('randomizar').addEventListener('click', () => {
+      randomizeSelect('tipo');
+      randomizeSelect('caracteristica');
+      randomizeSelect('fama');
+      randomizeSelect('calamidade');
+      randomizeSelect('lider');
+      // Não alteramos bioma para manter comportamento de auto-atribuição por polígonos
+      const msg = document.getElementById('msg');
+      msg.style.color = '#374151';
+      msg.textContent = 'Campos aleatórios selecionados.';
     });
   </script>
 </body>

@@ -19,8 +19,10 @@
     .panel input, .panel select { width:100%; padding:.45rem .55rem; border:1px solid #d1d5db; border-radius:8px; margin-bottom:.6rem; background:#fff; }
     .panel .row-inline { display:grid; grid-template-columns: 1fr 1fr; gap:.6rem; }
     .panel .row-inline .field { display:flex; flex-direction:column; }
-    .panel .actions { position: sticky; bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,.96) 60%, rgba(255,255,255,0)); padding-top:.5rem; }
+    .panel .actions { position: sticky; bottom: 0; background: linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,.96) 60%, rgba(255,255,255,0)); padding-top:.5rem; display:grid; grid-template-columns: 1fr 1fr; gap:.6rem; align-items:center; }
     .panel button { width:100%; padding:.6rem; border:none; border-radius:8px; background:#2563eb; color:#fff; cursor:pointer; font-weight:600; }
+    .panel button.secondary { background:#f3f4f6; color:#111827; border:1px solid #e5e7eb; }
+    .panel button.secondary:hover { background:#e5e7eb; }
     .panel button:hover { background:#1d4ed8; }
     .msg { margin-top:.5rem; font-size:.9rem; min-height: 1.2rem; }
   </style>
@@ -125,8 +127,9 @@
     <label>Bioma (opcional se polígonos definem)</label>
     <select id="bioma_select"><option value="">-- auto --</option></select>
     <div class="actions">
-      <button id="criar">Criar</button>
-      <div id="msg" class="msg"></div>
+      <button id="randomizar" class="secondary" type="button">Randomizar</button>
+      <button id="criar" type="button">Criar</button>
+      <div id="msg" class="msg" style="grid-column: 1 / -1;"></div>
     </div>
   </div>
 
@@ -274,6 +277,28 @@
         msg.style.color = '#b91c1c';
         msg.textContent = 'Erro: ' + err.message;
       });
+    });
+
+    // Randomizar campos (exceto Nome e X/Y)
+    function randomizeSelect(id, { excludeEmpty=true } = {}){
+      const el = document.getElementById(id);
+      if (!el) return;
+      const options = Array.from(el.options).filter(o => !o.disabled && !o.hidden && (!excludeEmpty || o.value !== ''));
+      if (options.length === 0) return;
+      const choice = options[Math.floor(Math.random() * options.length)];
+      el.value = choice.value;
+    }
+
+    document.getElementById('randomizar').addEventListener('click', () => {
+      randomizeSelect('tipo');
+      randomizeSelect('caracteristica');
+      randomizeSelect('fama');
+      randomizeSelect('calamidade');
+      randomizeSelect('lider');
+      // Não alteramos bioma para manter comportamento de auto-atribuição por polígonos
+      const msg = document.getElementById('msg');
+      msg.style.color = '#374151';
+      msg.textContent = 'Campos aleatórios selecionados.';
     });
   </script>
 </body>

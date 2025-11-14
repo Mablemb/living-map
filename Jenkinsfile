@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // 1. ALTERE: Substitua pelo seu usuário Docker Hub (ex: usuario_docker/rpdjango-test-build)
-        IMAGE_NAME = 'Mablemb/rpdjango-test-build' 
+        IMAGE_NAME = 'mablemb/rpdjango-test-build' 
         // 2. ID da credencial que você criou no Jenkins
         DOCKER_CREDENTIAL_ID = 'docker-hub-credentials' 
     }

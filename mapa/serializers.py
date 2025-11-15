@@ -49,7 +49,7 @@ class AssentamentoSerializer(serializers.ModelSerializer):
         return PersonagemSerializer(qs.all(), many=True).data
 
     def get_lojas(self, obj):
-        qs = getattr(obj, 'loja_set', None)
+        qs = getattr(obj, 'lojas', None)  # related_name='lojas'
         if qs is None:
             return []
         return LojaSerializer(qs.all(), many=True).data

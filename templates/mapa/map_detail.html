@@ -238,7 +238,8 @@
             const tooltip = `${a.nome} — ${a.tipo_display || a.tipo} (pers.: ${a.personagem_count ?? 0})`;
             const marker = L.marker(latlng).addTo(settlementLayerGroup).bindTooltip(tooltip, {permanent:false});
             marker.on('click', () => {
-              fetch(`/api/assentamentos/${a.id}/`)
+              // Sempre traz dados frescos do backend para refletir novas lojas/personagens
+              fetch(`/api/assentamentos/${a.id}/?t=${Date.now()}`)
                 .then(r => r.json())
                 .then(det => {
                   const popupHtml = buildAssentamentoPopup(det);
@@ -389,12 +390,14 @@
     map.on('popupopen', (e) => {
       const container = e.popup.getElement();
       if (!container) return;
-      const btn = container.querySelector('.btn-criar-loja');
-      const btnPers = container.querySelector('.btn-criar-personagem');
 
-      if (btn) {
-        btn.addEventListener('click', () => {
-          const assentamentoId = btn.getAttribute('data-assentamento-id');
+      container.onclick = (evt) => {
+        const target = evt.target;
+        if (!target) return;
+
+        // Criar loja
+        if (target.classList.contains('btn-criar-loja')) {
+          const assentamentoId = target.getAttribute('data-assentamento-id');
           if (!assentamentoId) return;
 
           const bodyHtml = `
@@ -432,12 +435,12 @@
             bodyHtml,
             context: { type: 'loja', assentamentoId: parseInt(assentamentoId, 10), popup: e.popup }
           });
-        });
-      }
+          return;
+        }
 
-      if (btnPers) {
-        btnPers.addEventListener('click', () => {
-          const assentamentoId = btnPers.getAttribute('data-assentamento-id');
+        // Criar personagem
+        if (target.classList.contains('btn-criar-personagem')) {
+          const assentamentoId = target.getAttribute('data-assentamento-id');
           if (!assentamentoId) return;
 
           const bodyHtml = `
@@ -452,8 +455,8 @@
             bodyHtml,
             context: { type: 'personagem', assentamentoId: parseInt(assentamentoId, 10), popup: e.popup }
           });
-        });
-      }
+        }
+      };
     });
 
     // Salvar do modal (Loja / Personagem)
@@ -484,7 +487,7 @@
         .then(([ok, data]) => {
           if (!ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
           // Recarrega dados do assentamento e reaplica template do popup
-          return fetch(`/api/assentamentos/${assentamentoId}/`).then(r => r.json());
+          return fetch(`/api/assentamentos/${assentamentoId}/?t=${Date.now()}`).then(r => r.json());
         })
         .then(det => {
           const html = buildAssentamentoPopup(det);
@@ -517,7 +520,7 @@
         .then(r => r.json().then(j => [r.ok, j]))
         .then(([ok, data]) => {
           if (!ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
-          return fetch(`/api/assentamentos/${assentamentoId}/`).then(r => r.json());
+          return fetch(`/api/assentamentos/${assentamentoId}/?t=${Date.now()}`).then(r => r.json());
         })
         .then(det => {
           const html = buildAssentamentoPopup(det);

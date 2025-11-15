@@ -154,6 +154,13 @@ class Loja(models.Model):
     tipo = models.CharField(max_length = 2, choices = TIPO, blank = False, null = False, default = '13')
     lojista = models.OneToOneField(Personagem, on_delete=models.CASCADE, related_name='loja', null=True)
     catalogo = models.CharField(max_length=1500, blank=True, null=True, help_text="Descrição resumida dos itens vendidos pela loja")
+    assentamento = models.ForeignKey(
+        'Assentamento',
+        on_delete=models.CASCADE,
+        related_name='lojas',
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["nome"]

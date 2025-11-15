@@ -20,9 +20,21 @@ Recursos já disponíveis no repositório:
 - Upload de imagem de mapa (MapaMundo) com detecção de largura/altura.
 - Desenho e edição de áreas (Biomas) via polígonos Leaflet.draw.
 - Criação de assentamentos clicando no mapa (coordenadas em pixel).
-- Atribuição automática de bioma a assentamentos dentro de polígonos.
+- Formulário lateral completo para novos assentamentos (tipo, característica, fama, calamidade, líder, bioma manual ou auto).
+- Atribuição automática de bioma a assentamentos dentro de polígonos (fallback quando bioma não é escolhido manualmente).
 - Visualização opcional das camadas de biomas.
-- Modelos prontos para relacionar personagens a assentamentos.
+- Modelos e API para relacionar personagens, lojas e assentamentos.
+
+### 🧭 Editor de Mapa Interativo (Mapa Detail)
+- Clique no mapa para capturar coordenadas X/Y e preencher o formulário de novo assentamento.
+- Botão **Randomizar** sugere aleatoriamente tipo, característica, fama, calamidade e líder do assentamento, mantendo nome/X/Y.
+- Os marcadores de assentamento exibem um popup com:
+  - Nome, tipo (texto legível), líder e fama (textos legíveis) e biomas associados.
+  - Até 3 personagens de exemplo e até 3 lojas de exemplo.
+- A partir do popup você pode:
+  - Criar uma **nova loja** ligada ao assentamento, em um modal com campos `nome`, `tipo` (todas as opções do model) e `catalogo` (descrição opcional dos itens vendidos).
+  - Criar um **personagem notável** para o assentamento, em um modal simples com `nome` e `raça`.
+- Após criar uma loja ou personagem, o popup do assentamento é recarregado usando o mesmo template, já mostrando os novos exemplos.
 
 ---
 ## 🧩 Arquitetura Futura (Proposta)

@@ -36,6 +36,20 @@
   </header>
 
   <div id="map"></div>
+  <!-- Modal genérico para criação de Loja/Personagem -->
+  <div id="modal-backdrop" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:1300;align-items:center;justify-content:center;">
+    <div id="modal" style="background:#fff;border-radius:12px;box-shadow:0 20px 40px rgba(15,23,42,.4);width:360px;max-width:95vw;max-height:80vh;display:flex;flex-direction:column;">
+      <div style="padding:.75rem 1rem;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;">
+        <h3 id="modal-title" style="margin:0;font-size:1rem;">Nova entrada</h3>
+        <button type="button" id="modal-close" style="border:none;background:transparent;font-size:1.1rem;cursor:pointer;line-height:1;">✕</button>
+      </div>
+      <div id="modal-body" style="padding:.8rem 1rem;overflow-y:auto;font-size:.9rem;"></div>
+      <div style="padding:.7rem 1rem;border-top:1px solid #e5e7eb;display:flex;gap:.6rem;justify-content:flex-end;">
+        <button type="button" id="modal-cancel" style="padding:.4rem .85rem;border-radius:8px;border:1px solid #e5e7eb;background:#f3f4f6;cursor:pointer;">Cancelar</button>
+        <button type="button" id="modal-save" style="padding:.4rem .95rem;border-radius:8px;border:none;background:#2563eb;color:#fff;font-weight:600;cursor:pointer;">Salvar</button>
+      </div>
+    </div>
+  </div>
   <div class="panel">
     <h3>Novo Assentamento</h3>
     <div class="row-inline">
@@ -172,6 +186,47 @@
       });
 
     let settlementLayerGroup = L.layerGroup().addTo(map);
+    // Util: monta HTML de popup de assentamento a partir de um objeto det
+    function buildAssentamentoPopup(det){
+      const pessoas = (det.personagens || []).slice(0, 3).map(p => p.nome);
+      const lojasLista = (det.lojas || []).slice(0, 3);
+      const biomas = (det.bioma || []).map(b => b.nome);
+
+      const pessoasHtml = pessoas.length ? pessoas.join(', ') : '—';
+      const lojasHtml = lojasLista.length
+        ? lojasLista.map(l => `${l.nome}`).join(', ')
+        : '—';
+      const biomasHtml = biomas.length ? biomas.join(', ') : '—';
+
+      return `
+        <div style="min-width:220px;font-size:.9rem;">
+          <div style="font-weight:600;font-size:1rem;">${det.nome}</div>
+          <div>Tipo: ${det.tipo_display || det.tipo}</div>
+          <div>Líder: ${det.lider_display || '—'}</div>
+          <div>Fama: ${det.fama_display || '—'}</div>
+          <div>Bioma(s): ${biomasHtml}</div>
+          <div style="margin-top:.35rem;">
+            <strong>Pessoas notáveis (exemplo):</strong> ${pessoasHtml}
+          </div>
+          <div style="margin-top:.35rem;">
+            <strong>Lojas (exemplo):</strong> ${lojasHtml}
+          </div>
+          <button
+            type="button"
+            data-assentamento-id="${det.id}"
+            class="btn-criar-loja"
+            style="margin-top:.45rem;width:100%;padding:.35rem .5rem;border:none;border-radius:6px;background:#16a34a;color:#fff;cursor:pointer;font-size:.85rem;">
+            + Criar loja neste assentamento
+          </button>
+          <button
+            type="button"
+            data-assentamento-id="${det.id}"
+            class="btn-criar-personagem"
+            style="margin-top:.35rem;width:100%;padding:.35rem .5rem;border:none;border-radius:6px;background:#0ea5e9;color:#fff;cursor:pointer;font-size:.85rem;">
+            + Criar personagem notável
+          </button>
+        </div>`;
+    }
     function loadSettlements(){
       settlementLayerGroup.clearLayers();
       fetch(`/api/assentamentos/markers/?mapa=${MAP_ID}`)
@@ -186,8 +241,8 @@
               fetch(`/api/assentamentos/${a.id}/`)
                 .then(r => r.json())
                 .then(det => {
-                  const nomes = (det.personagens || []).map(p => p.nome).join(', ');
-                  marker.bindPopup(`<b>${det.nome}</b><br>Tipo: ${det.tipo}<br>Personagens: ${nomes || '—'}`).openPopup();
+                  const popupHtml = buildAssentamentoPopup(det);
+                  marker.bindPopup(popupHtml).openPopup();
                 });
             });
           });
@@ -299,6 +354,180 @@
       const msg = document.getElementById('msg');
       msg.style.color = '#374151';
       msg.textContent = 'Campos aleatórios selecionados.';
+    });
+
+    // ---- Modal helpers ----
+    const modalBackdrop = document.getElementById('modal-backdrop');
+    const modalBody = document.getElementById('modal-body');
+    const modalTitle = document.getElementById('modal-title');
+    const modalClose = document.getElementById('modal-close');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalSave = document.getElementById('modal-save');
+
+    let currentModalContext = null; // { type: 'loja'|'personagem', assentamentoId }
+
+    function openModal({ title, bodyHtml, context }){
+      modalTitle.textContent = title;
+      modalBody.innerHTML = bodyHtml;
+      currentModalContext = context;
+      modalBackdrop.style.display = 'flex';
+    }
+
+    function closeModal(){
+      modalBackdrop.style.display = 'none';
+      modalBody.innerHTML = '';
+      currentModalContext = null;
+    }
+
+    modalClose.addEventListener('click', closeModal);
+    modalCancel.addEventListener('click', closeModal);
+    modalBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalBackdrop) closeModal();
+    });
+
+    // Delegação de clique para botões de criar loja/personagem no popup
+    map.on('popupopen', (e) => {
+      const container = e.popup.getElement();
+      if (!container) return;
+      const btn = container.querySelector('.btn-criar-loja');
+      const btnPers = container.querySelector('.btn-criar-personagem');
+
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const assentamentoId = btn.getAttribute('data-assentamento-id');
+          if (!assentamentoId) return;
+
+          const bodyHtml = `
+            <label>Nome da loja</label>
+            <input id="loj-nome" type="text" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;" />
+            <label>Tipo de loja</label>
+            <select id="loj-tipo" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;">
+              <option value="1">Penhora</option>
+              <option value="2">Apotecário</option>
+              <option value="3">Mercearia</option>
+              <option value="4">Iguarias Finas/Exóticas</option>
+              <option value="5">Olaria</option>
+              <option value="6">Funerária</option>
+              <option value="7">Livraria</option>
+              <option value="8">Banco</option>
+              <option value="9">Armoraria</option>
+              <option value="10">Velas e Incensos</option>
+              <option value="11">Forja/Oficina</option>
+              <option value="12">Carpintaria</option>
+              <option value="13" selected>Ateliê</option>
+              <option value="14">Joalheria</option>
+              <option value="15">Padaria</option>
+              <option value="16">Cartógrafo</option>
+              <option value="17">Alfaiate</option>
+              <option value="18">Cordoaria</option>
+              <option value="19">Construtora</option>
+              <option value="20">Biblioteca</option>
+            </select>
+            <label>Catálogo (opcional)</label>
+            <textarea id="loj-catalogo" rows="4" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;resize:vertical;"></textarea>
+          `;
+
+          openModal({
+            title: 'Nova loja',
+            bodyHtml,
+            context: { type: 'loja', assentamentoId: parseInt(assentamentoId, 10), popup: e.popup }
+          });
+        });
+      }
+
+      if (btnPers) {
+        btnPers.addEventListener('click', () => {
+          const assentamentoId = btnPers.getAttribute('data-assentamento-id');
+          if (!assentamentoId) return;
+
+          const bodyHtml = `
+            <label>Nome do personagem</label>
+            <input id="per-nome" type="text" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;" />
+            <label>Raça</label>
+            <input id="per-raca" type="text" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;" />
+          `;
+
+          openModal({
+            title: 'Novo personagem notável',
+            bodyHtml,
+            context: { type: 'personagem', assentamentoId: parseInt(assentamentoId, 10), popup: e.popup }
+          });
+        });
+      }
+    });
+
+    // Salvar do modal (Loja / Personagem)
+    modalSave.addEventListener('click', () => {
+      if (!currentModalContext) return;
+      const { type, assentamentoId, popup } = currentModalContext;
+
+      if (type === 'loja') {
+        const nome = (document.getElementById('loj-nome') || {}).value?.trim();
+        const tipo = (document.getElementById('loj-tipo') || {}).value;
+        const catalogo = (document.getElementById('loj-catalogo') || {}).value || '';
+        if (!nome) return;
+
+        const payload = {
+          nome,
+          tipo,
+          lojista: null,
+          catalogo,
+          assentamento: assentamentoId
+        };
+
+        fetch('/api/lojas/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+          body: JSON.stringify(payload)
+        })
+        .then(r => r.json().then(j => [r.ok, j]))
+        .then(([ok, data]) => {
+          if (!ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
+          // Recarrega dados do assentamento e reaplica template do popup
+          return fetch(`/api/assentamentos/${assentamentoId}/`).then(r => r.json());
+        })
+        .then(det => {
+          const html = buildAssentamentoPopup(det);
+          popup.setContent(html).update();
+          closeModal();
+        })
+        .catch(err => {
+          alert('Erro ao criar loja: ' + err.message);
+        });
+      }
+
+      if (type === 'personagem') {
+        const nome = (document.getElementById('per-nome') || {}).value?.trim();
+        const raca = (document.getElementById('per-raca') || {}).value?.trim() || 'Humano';
+        if (!nome) return;
+
+        const payload = {
+          nome,
+          raca,
+          origem: assentamentoId,
+          aparencia: '1',
+          segredo: '1'
+        };
+
+        fetch('/api/personagens/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+          body: JSON.stringify(payload)
+        })
+        .then(r => r.json().then(j => [r.ok, j]))
+        .then(([ok, data]) => {
+          if (!ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
+          return fetch(`/api/assentamentos/${assentamentoId}/`).then(r => r.json());
+        })
+        .then(det => {
+          const html = buildAssentamentoPopup(det);
+          popup.setContent(html).update();
+          closeModal();
+        })
+        .catch(err => {
+          alert('Erro ao criar personagem: ' + err.message);
+        });
+      }
     });
   </script>
 </body>

@@ -32,7 +32,11 @@ class AssentamentoSerializer(serializers.ModelSerializer):
     # Embute os personagens que têm origem neste assentamento
     personagens = serializers.SerializerMethodField()
     bioma = BiomaSerializer(many=True, read_only=True)
-    
+    lojas = serializers.SerializerMethodField()
+    tipo_display = serializers.CharField(source='get_tipo_display', read_only=True)
+    lider_display = serializers.CharField(source='get_lider_display', read_only=True)
+    fama_display = serializers.CharField(source='get_fama_display', read_only=True)
+
     class Meta:
         model = Assentamento
         fields = '__all__'
@@ -43,6 +47,12 @@ class AssentamentoSerializer(serializers.ModelSerializer):
         if qs is None:
             return []
         return PersonagemSerializer(qs.all(), many=True).data
+
+    def get_lojas(self, obj):
+        qs = getattr(obj, 'loja_set', None)
+        if qs is None:
+            return []
+        return LojaSerializer(qs.all(), many=True).data
 
 class AssentamentoMarkerSerializer(serializers.ModelSerializer):
     personagem_count = serializers.IntegerField(read_only=True)

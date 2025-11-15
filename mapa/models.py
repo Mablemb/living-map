@@ -153,6 +153,7 @@ class Loja(models.Model):
     nome = models.CharField(max_length=120, unique=True, blank = False, null = False)
     tipo = models.CharField(max_length = 2, choices = TIPO, blank = False, null = False, default = '13')
     lojista = models.OneToOneField(Personagem, on_delete=models.CASCADE, related_name='loja', null=True)
+    catalogo = models.CharField(max_length=1500, blank=True, null=True, help_text="Descrição resumida dos itens vendidos pela loja")
 
     class Meta:
         ordering = ["nome"]

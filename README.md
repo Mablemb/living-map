@@ -30,11 +30,18 @@ Recursos já disponíveis no repositório:
 - Botão **Randomizar** sugere aleatoriamente tipo, característica, fama, calamidade e líder do assentamento, mantendo nome/X/Y.
 - Os marcadores de assentamento exibem um popup com:
   - Nome, tipo (texto legível), líder e fama (textos legíveis) e biomas associados.
-  - Até 3 personagens de exemplo e até 3 lojas de exemplo.
-- A partir do popup você pode:
+  - Até 3 personagens e até 3 lojas ligados ao assentamento (lista resumida).
+- No popup, o **nome da cidade** é um link que abre um **modal de detalhes do assentamento**, mostrando:
+  - Todos os campos principais (nome, tipo, bioma(s), característica, fama, calamidade, líder, posição X/Y).
+  - Uma lista em colunas de **pessoas notáveis** e **lojas** associadas.
+  - Um campo de **descrição detalhada** editável sobre a cidade/assentamento.
+- Dentro desse modal, os nomes de pessoas e lojas aparecem como links azuis; ao clicar:
+  - Abre-se um **modal de detalhes do personagem** com seus campos principais.
+  - Abre-se um **modal de detalhes da loja**, incluindo o campo `catalogo` (descrição dos itens vendidos).
+- A partir do popup você também pode:
   - Criar uma **nova loja** ligada ao assentamento, em um modal com campos `nome`, `tipo` (todas as opções do model) e `catalogo` (descrição opcional dos itens vendidos).
   - Criar um **personagem notável** para o assentamento, em um modal simples com `nome` e `raça`.
-- Após criar uma loja ou personagem, o popup do assentamento é recarregado usando o mesmo template, já mostrando os novos exemplos.
+- Após criar uma loja ou personagem, o popup do assentamento é recarregado e passa a exibir os novos itens na lista resumida.
 
 ---
 ## 🧩 Arquitetura Futura (Proposta)

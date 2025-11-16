@@ -14,15 +14,7 @@ services:
       - .env
     working_dir: /usr/src/app
     command: >
-      gunicorn setup.wsgi:application
-      --bind 0.0.0.0:8000
-      --workers 2
-      --threads 2
-      --timeout 60
-      --graceful-timeout 30
-      --keep-alive 2
-      --access-logfile -
-      --error-logfile -
+      python manage.py runserver 0.0.0.0:8000
 
 volumes:
   postgres_data:

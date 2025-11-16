@@ -192,24 +192,24 @@
       const lojasLista = (det.lojas || []).slice(0, 3);
       const biomas = (det.bioma || []).map(b => b.nome);
 
-      const pessoasHtml = pessoas.length ? pessoas.join(', ') : '—';
+      const pessoasHtml = pessoas.length ? pessoas.join(', ') + '…' : '—';
       const lojasHtml = lojasLista.length
-        ? lojasLista.map(l => `${l.nome}`).join(', ')
+        ? lojasLista.map(l => `${l.nome}`).join(', ') + '…'
         : '—';
       const biomasHtml = biomas.length ? biomas.join(', ') : '—';
 
       return `
         <div style="min-width:220px;font-size:.9rem;">
           <div style="font-weight:600;font-size:1rem;">${det.nome}</div>
-          <div>Tipo: ${det.tipo_display || det.tipo}</div>
-          <div>Líder: ${det.lider_display || '—'}</div>
-          <div>Fama: ${det.fama_display || '—'}</div>
-          <div>Bioma(s): ${biomasHtml}</div>
+          <div><strong>Tipo:</strong> ${det.tipo_display || det.tipo}</div>
+          <div><strong>Líder:</strong> ${det.lider_display || '—'}</div>
+          <div><strong>Fama:</strong> ${det.fama_display || '—'}</div>
+          <div><strong>Bioma(s):</strong> ${biomasHtml}</div>
           <div style="margin-top:.35rem;">
-            <strong>Pessoas notáveis (exemplo):</strong> ${pessoasHtml}
+            <strong>Pessoas notáveis:</strong> ${pessoasHtml}
           </div>
           <div style="margin-top:.35rem;">
-            <strong>Lojas (exemplo):</strong> ${lojasHtml}
+            <strong>Lojas:</strong> ${lojasHtml}
           </div>
           <button
             type="button"

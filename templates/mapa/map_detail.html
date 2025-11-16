@@ -364,7 +364,7 @@
     const modalCancel = document.getElementById('modal-cancel');
     const modalSave = document.getElementById('modal-save');
 
-    let currentModalContext = null; // { type: 'loja'|'personagem'|'detalhe-assentamento', assentamentoId, popup? }
+    let currentModalContext = null; // { type: 'loja'|'personagem'|'detalhe-assentamento'|'detalhe-personagem'|'detalhe-loja', assentamentoId?, personagemId?, lojaId?, popup? }
 
     function openModal({ title, bodyHtml, context }){
       modalTitle.textContent = title;
@@ -385,19 +385,72 @@
       if (e.target === modalBackdrop) closeModal();
     });
 
+    // Cliques dentro do corpo do modal (detalhes de assentamento -> loja/personagem)
+    modalBody.addEventListener('click', (evt) => {
+      const pessoaEl = evt.target.closest('.item-pessoa');
+      if (pessoaEl) {
+        const personagemId = pessoaEl.getAttribute('data-personagem-id');
+        if (!personagemId) return;
+
+        fetch(`/api/personagens/${personagemId}/?t=${Date.now()}`)
+          .then(r => r.json())
+          .then(p => {
+            const bodyHtml = `
+              <div style="display:flex;flex-direction:column;gap:.35rem;">
+                <div><strong>Nome:</strong> ${p.nome}</div>
+                <div><strong>Raça:</strong> ${p.raca}</div>
+                <div><strong>Origem (assentamento id):</strong> ${p.origem}</div>
+                <div><strong>Aparência (código):</strong> ${p.aparencia}</div>
+                <div><strong>Segredo (código):</strong> ${p.segredo}</div>
+              </div>`;
+
+            openModal({
+              title: `Personagem: ${p.nome}`,
+              bodyHtml,
+              context: { type: 'detalhe-personagem', personagemId: parseInt(personagemId, 10) }
+            });
+          });
+        return;
+      }
+
+      const lojaEl = evt.target.closest('.item-loja');
+      if (lojaEl) {
+        const lojaId = lojaEl.getAttribute('data-loja-id');
+        if (!lojaId) return;
+
+        fetch(`/api/lojas/${lojaId}/?t=${Date.now()}`)
+          .then(r => r.json())
+          .then(l => {
+            const bodyHtml = `
+              <div style="display:flex;flex-direction:column;gap:.35rem;">
+                <div><strong>Nome:</strong> ${l.nome}</div>
+                <div><strong>Tipo (código):</strong> ${l.tipo}</div>
+                <div><strong>Lojista (id):</strong> ${l.lojista || '—'}</div>
+                <div><strong>Assentamento (id):</strong> ${l.assentamento || '—'}</div>
+                <div><strong>Catálogo:</strong></div>
+                <div style="white-space:pre-wrap;font-size:.85rem;">${l.catalogo || ''}</div>
+              </div>`;
+
+            openModal({
+              title: `Loja: ${l.nome}`,
+              bodyHtml,
+              context: { type: 'detalhe-loja', lojaId: parseInt(lojaId, 10) }
+            });
+          });
+      }
+    });
+
     // Delegação de clique para botões de criar loja/personagem no popup
     map.on('popupopen', (e) => {
       const container = e.popup.getElement();
       if (!container) return;
 
       container.onclick = (evt) => {
-        const target = evt.target;
-        if (!target) return;
-
         // Abrir detalhes completos do assentamento
-        if (target.classList.contains('link-detalhe-assentamento')) {
+        const linkAssentamento = evt.target.closest('.link-detalhe-assentamento');
+        if (linkAssentamento) {
           evt.preventDefault();
-          const assentamentoId = target.getAttribute('data-assentamento-id');
+          const assentamentoId = linkAssentamento.getAttribute('data-assentamento-id');
           if (!assentamentoId) return;
 
           fetch(`/api/assentamentos/${assentamentoId}/?t=${Date.now()}`)
@@ -409,10 +462,20 @@
               const descricao = det.descricao || '';
 
               const pessoasHtml = pessoasList.length
-                ? pessoasList.map(p => `<div class=\"item-pessoa\" data-personagem-id=\"${p.id}\" style=\"padding:.1rem 0;cursor:pointer;\">• ${p.nome}</div>`).join('')
+                ? pessoasList.map(p => `
+                    <div class=\"item-pessoa\" data-personagem-id=\"${p.id}\" style=\"padding:.1rem 0;cursor:pointer;\">
+                      <span style=\"margin-right:.25rem;\">•</span>
+                      <span class=\"link-item\" style=\"color:#1d4ed8;text-decoration:underline;\">${p.nome}</span>
+                    </div>
+                  `).join('')
                 : '<div style=\"color:#6b7280;\">—</div>';
               const lojasHtml = lojasList.length
-                ? lojasList.map(l => `<div class=\"item-loja\" data-loja-id=\"${l.id}\" style=\"padding:.1rem 0;cursor:pointer;\">• ${l.nome}</div>`).join('')
+                ? lojasList.map(l => `
+                    <div class=\"item-loja\" data-loja-id=\"${l.id}\" style=\"padding:.1rem 0;cursor:pointer;\">
+                      <span style=\"margin-right:.25rem;\">•</span>
+                      <span class=\"link-item\" style=\"color:#1d4ed8;text-decoration:underline;\">${l.nome}</span>
+                    </div>
+                  `).join('')
                 : '<div style=\"color:#6b7280;\">—</div>';
 
               const bodyHtml = `
@@ -457,8 +520,9 @@
         }
 
         // Criar loja
-        if (target.classList.contains('btn-criar-loja')) {
-          const assentamentoId = target.getAttribute('data-assentamento-id');
+        const btnLoja = evt.target.closest('.btn-criar-loja');
+        if (btnLoja) {
+          const assentamentoId = btnLoja.getAttribute('data-assentamento-id');
           if (!assentamentoId) return;
 
           const bodyHtml = `
@@ -500,8 +564,9 @@
         }
 
         // Criar personagem
-        if (target.classList.contains('btn-criar-personagem')) {
-          const assentamentoId = target.getAttribute('data-assentamento-id');
+        const btnPersonagem = evt.target.closest('.btn-criar-personagem');
+        if (btnPersonagem) {
+          const assentamentoId = btnPersonagem.getAttribute('data-assentamento-id');
           if (!assentamentoId) return;
 
           const bodyHtml = `
@@ -523,7 +588,7 @@
     // Salvar do modal (Loja / Personagem)
     modalSave.addEventListener('click', () => {
       if (!currentModalContext) return;
-      const { type, assentamentoId, popup } = currentModalContext;
+      const { type, assentamentoId, personagemId, lojaId, popup } = currentModalContext;
 
       if (type === 'loja') {
         const nome = (document.getElementById('loj-nome') || {}).value?.trim();

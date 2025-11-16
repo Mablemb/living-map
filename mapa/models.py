@@ -269,6 +269,7 @@ class Assentamento(models.Model):
     # Coordenadas na imagem do mapa (pixels)
     pos_x = models.FloatField(blank=True, null=True, help_text="Coordenada X (px) na imagem do mapa")
     pos_y = models.FloatField(blank=True, null=True, help_text="Coordenada Y (px) na imagem do mapa")
+    descricao = models.TextField(blank=True, null=True, help_text="Descrição detalhada do assentamento/cidade")
     #personagens_notaveis = models.ManyToManyField(Personagem)
 
     class Meta:

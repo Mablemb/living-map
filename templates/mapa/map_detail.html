@@ -197,10 +197,9 @@
         ? lojasLista.map(l => `${l.nome}`).join(', ') + '…'
         : '—';
       const biomasHtml = biomas.length ? biomas.join(', ') : '—';
-
       return `
         <div style="min-width:220px;font-size:.9rem;">
-          <div style="font-weight:600;font-size:1rem;">${det.nome}</div>
+          <div style="font-weight:600;font-size:1rem;"><a href="#" class="link-detalhe-assentamento" data-assentamento-id="${det.id}" style="color:#1d4ed8;text-decoration:underline;">${det.nome}</a></div>
           <div><strong>Tipo:</strong> ${det.tipo_display || det.tipo}</div>
           <div><strong>Líder:</strong> ${det.lider_display || '—'}</div>
           <div><strong>Fama:</strong> ${det.fama_display || '—'}</div>
@@ -365,7 +364,7 @@
     const modalCancel = document.getElementById('modal-cancel');
     const modalSave = document.getElementById('modal-save');
 
-    let currentModalContext = null; // { type: 'loja'|'personagem', assentamentoId }
+    let currentModalContext = null; // { type: 'loja'|'personagem'|'detalhe-assentamento', assentamentoId, popup? }
 
     function openModal({ title, bodyHtml, context }){
       modalTitle.textContent = title;
@@ -394,6 +393,68 @@
       container.onclick = (evt) => {
         const target = evt.target;
         if (!target) return;
+
+        // Abrir detalhes completos do assentamento
+        if (target.classList.contains('link-detalhe-assentamento')) {
+          evt.preventDefault();
+          const assentamentoId = target.getAttribute('data-assentamento-id');
+          if (!assentamentoId) return;
+
+          fetch(`/api/assentamentos/${assentamentoId}/?t=${Date.now()}`)
+            .then(r => r.json())
+            .then(det => {
+              const biomas = (det.bioma || []).map(b => b.nome).join(', ') || '—';
+              const pessoasList = (det.personagens || []);
+              const lojasList = (det.lojas || []);
+              const descricao = det.descricao || '';
+
+              const pessoasHtml = pessoasList.length
+                ? pessoasList.map(p => `<div class=\"item-pessoa\" data-personagem-id=\"${p.id}\" style=\"padding:.1rem 0;cursor:pointer;\">• ${p.nome}</div>`).join('')
+                : '<div style=\"color:#6b7280;\">—</div>';
+              const lojasHtml = lojasList.length
+                ? lojasList.map(l => `<div class=\"item-loja\" data-loja-id=\"${l.id}\" style=\"padding:.1rem 0;cursor:pointer;\">• ${l.nome}</div>`).join('')
+                : '<div style=\"color:#6b7280;\">—</div>';
+
+              const bodyHtml = `
+                <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:.75rem;align-items:flex-start;">
+                  <div style="display:flex;flex-direction:column;gap:.25rem;">
+                    <div><strong>Nome:</strong> ${det.nome}</div>
+                    <div><strong>Tipo:</strong> ${det.tipo_display || det.tipo}</div>
+                    <div><strong>Bioma(s):</strong> ${biomas}</div>
+                    <div><strong>Característica:</strong> ${det.caracteristica || '—'}</div>
+                    <div><strong>Fama:</strong> ${det.fama_display || det.fama || '—'}</div>
+                    <div><strong>Calamidade:</strong> ${det.calamidade || '—'}</div>
+                    <div><strong>Líder:</strong> ${det.lider_display || det.lider || '—'}</div>
+                    <div><strong>Posição X,Y:</strong> ${det.pos_x ?? '—'}, ${det.pos_y ?? '—'}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:.5rem;">
+                    <div>
+                      <div><strong>Pessoas notáveis</strong></div>
+                      <div style="max-height:120px;overflow-y:auto;font-size:.85rem;margin-top:.15rem;">
+                        ${pessoasHtml}
+                      </div>
+                    </div>
+                    <div>
+                      <div><strong>Lojas</strong></div>
+                      <div style="max-height:120px;overflow-y:auto;font-size:.85rem;margin-top:.15rem;">
+                        ${lojasHtml}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:.6rem;">
+                  <label for="assentamento-descricao"><strong>Descrição detalhada</strong></label>
+                  <textarea id="assentamento-descricao" rows="4" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;resize:vertical;">${descricao}</textarea>
+                </div>`;
+
+              openModal({
+                title: `Detalhes de ${det.nome}`,
+                bodyHtml,
+                context: { type: 'detalhe-assentamento', assentamentoId: parseInt(assentamentoId, 10) }
+              });
+            });
+          return;
+        }
 
         // Criar loja
         if (target.classList.contains('btn-criar-loja')) {
@@ -529,6 +590,25 @@
         })
         .catch(err => {
           alert('Erro ao criar personagem: ' + err.message);
+        });
+      }
+
+      if (type === 'detalhe-assentamento') {
+        const descricaoEl = document.getElementById('assentamento-descricao');
+        const descricao = descricaoEl ? descricaoEl.value : '';
+
+        fetch(`/api/assentamentos/${assentamentoId}/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+          body: JSON.stringify({ descricao })
+        })
+        .then(r => r.json().then(j => [r.ok, j]))
+        .then(([ok, data]) => {
+          if (!ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
+          closeModal();
+        })
+        .catch(err => {
+          alert('Erro ao salvar descrição: ' + err.message);
         });
       }
     });

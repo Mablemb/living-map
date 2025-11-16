@@ -56,5 +56,23 @@ pipeline {
                 echo 'Next: Deploy to staging/production server.'
             }
         }
+
+        stage('Merge main into homol') {
+            when {
+                expression { return env.BRANCH_NAME == 'main' }
+            }
+            steps {
+                echo 'Merging main into homol...'
+                sh '''
+                    git config user.name "jenkins"
+                    git config user.email "jenkins@local"
+
+                    git fetch origin
+                    git checkout homol
+                    git merge --no-ff origin/main -m "Merge main into homol from Jenkins build ${BUILD_NUMBER}"
+                    git push origin homol
+                '''
+            }
+        }
     }
 }

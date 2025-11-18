@@ -365,6 +365,7 @@
     const modalSave = document.getElementById('modal-save');
 
     let currentModalContext = null; // { type: 'loja'|'personagem'|'detalhe-assentamento'|'detalhe-personagem'|'detalhe-loja', assentamentoId?, personagemId?, lojaId?, popup? }
+    let assentamentosCache = null; // cache simples dos assentamentos deste mapa
 
     function openModal({ title, bodyHtml, context }){
       modalTitle.textContent = title;
@@ -392,16 +393,60 @@
         const personagemId = pessoaEl.getAttribute('data-personagem-id');
         if (!personagemId) return;
 
-        fetch(`/api/personagens/${personagemId}/?t=${Date.now()}`)
-          .then(r => r.json())
-          .then(p => {
+        const renderPersonagemModal = (p, assentamentosLista) => {
+            const optionsOrigem = (assentamentosLista || []).map(a => `
+              <option value="${a.id}" ${p.origem === a.id ? 'selected' : ''}>${a.nome}</option>
+            `).join('');
+
             const bodyHtml = `
               <div style="display:flex;flex-direction:column;gap:.35rem;">
-                <div><strong>Nome:</strong> ${p.nome}</div>
-                <div><strong>Raça:</strong> ${p.raca}</div>
-                <div><strong>Origem (assentamento id):</strong> ${p.origem}</div>
-                <div><strong>Aparência (código):</strong> ${p.aparencia}</div>
-                <div><strong>Segredo (código):</strong> ${p.segredo}</div>
+                <div><strong>Nome:</strong> <span id="per-view-nome">${p.nome}</span></div>
+                <div><strong>Raça:</strong> <span id="per-view-raca">${p.raca}</span></div>
+                <div><strong>Origem:</strong> <span id="per-view-origem">${p.origem_nome || p.origem}</span></div>
+                <div><strong>Aparência:</strong> <span id="per-view-aparencia">${p.aparencia_display || p.aparencia}</span></div>
+                <div><strong>Segredo:</strong> <span id="per-view-segredo">${p.segredo_display || p.segredo}</span></div>
+
+                <div id="per-edit-container" style="margin-top:.75rem;display:none;flex-direction:column;gap:.35rem;">
+                  <label>Nome</label>
+                  <input id="edit-per-nome" type="text" value="${p.nome}" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;" />
+                  <label>Raça</label>
+                  <input id="edit-per-raca" type="text" value="${p.raca}" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;" />
+                  <label>Origem (assentamento)</label>
+                  <select id="edit-per-origem" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;">
+                    ${optionsOrigem}
+                  </select>
+                  <label>Aparência</label>
+                  <select id="edit-per-aparencia" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;">
+                    <option value="1" ${p.aparencia === '1' ? 'selected' : ''}>Ostenta Joias Diferenciadas</option>
+                    <option value="2" ${p.aparencia === '2' ? 'selected' : ''}>Roupas Diferenciadas (Chamativas, Estrangeiras, Formais ou Trapos)</option>
+                    <option value="3" ${p.aparencia === '3' ? 'selected' : ''}>Dispositivo Auxiliar de Marcha elegante (Bengala, cadeira de rodas/flutuante, tala/exoesqueleto)</option>
+                    <option value="4" ${p.aparencia === '4' ? 'selected' : ''}>Cicatriz Marcante</option>
+                    <option value="5" ${p.aparencia === '5' ? 'selected' : ''}>Olhos de cor incomum (ou de 2 cores diferentes)</option>
+                    <option value="6" ${p.aparencia === '6' ? 'selected' : ''}>Tatuagens/Piercings</option>
+                    <option value="7" ${p.aparencia === '7' ? 'selected' : ''}>Marca de Nascença</option>
+                    <option value="8" ${p.aparencia === '8' ? 'selected' : ''}>Cabelos de cor incomum</option>
+                    <option value="9" ${p.aparencia === '9' ? 'selected' : ''}>Careca OU Barba/Cabelo trançado</option>
+                    <option value="10" ${p.aparencia === '10' ? 'selected' : ''}>Nariz distinto (grande/pequeno ou quebrado ou bulboso)</option>
+                    <option value="11" ${p.aparencia === '11' ? 'selected' : ''}>Postura distinta (Encurvado ou Rígido)</option>
+                    <option value="12" ${p.aparencia === '12' ? 'selected' : ''}>Extremamente belo/feio</option>
+                  </select>
+                  <label>Segredo</label>
+                  <select id="edit-per-segredo" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;">
+                    <option value="1" ${p.segredo === '1' ? 'selected' : ''}>Disfarçado, ocultando identidade ou aspecto específico da aparência</option>
+                    <option value="2" ${p.segredo === '2' ? 'selected' : ''}>Planejando/Executando/Escondendo um crime</option>
+                    <option value="3" ${p.segredo === '3' ? 'selected' : ''}>Esta pessoa ou a família dela foi ameaçada de morte caso deixe de fazer algo</option>
+                    <option value="4" ${p.segredo === '4' ? 'selected' : ''}>Magicamente influenciada a se comportar de determinada forma</option>
+                    <option value="5" ${p.segredo === '5' ? 'selected' : ''}>Terrivelmente doente ou acometido por dor crônica</option>
+                    <option value="6" ${p.segredo === '6' ? 'selected' : ''}>Se sente responsável pela morte/infortúnio de alguém</option>
+                    <option value="7" ${p.segredo === '7' ? 'selected' : ''}>Prestes a falir catastroficamente</option>
+                    <option value="8" ${p.segredo === '8' ? 'selected' : ''}>Desesperadamente carente ou nutrindo paixão não correspondida</option>
+                    <option value="9" ${p.segredo === '9' ? 'selected' : ''}>Nutrindo uma ambição poderosa</option>
+                    <option value="10" ${p.segredo === '10' ? 'selected' : ''}>Profundamente insatisfeito/deprimido</option>
+                  </select>
+                  <button type="button" id="per-btn-randomizar" style="margin-top:.4rem;align-self:flex-start;padding:.25rem .6rem;border-radius:6px;border:1px solid #d1d5db;background:#e5e7eb;cursor:pointer;font-size:.8rem;">Randomizar características</button>
+                </div>
+
+                <button type="button" id="per-btn-editar" style="margin-top:.75rem;align-self:flex-start;padding:.3rem .7rem;border-radius:6px;border:1px solid #d1d5db;background:#f3f4f6;cursor:pointer;font-size:.85rem;">Editar</button>
               </div>`;
 
             openModal({
@@ -409,7 +454,58 @@
               bodyHtml,
               context: { type: 'detalhe-personagem', personagemId: parseInt(personagemId, 10) }
             });
-          });
+
+            // Ativa modo edição ao clicar em "Editar"
+            const btnEditar = document.getElementById('per-btn-editar');
+            if (btnEditar) {
+              btnEditar.addEventListener('click', () => {
+                const editBox = document.getElementById('per-edit-container');
+                if (!editBox) return;
+                editBox.style.display = 'flex';
+              });
+            }
+
+            // Randomizar características (origem, aparência, segredo) no modo edição
+            const btnRand = document.getElementById('per-btn-randomizar');
+            if (btnRand) {
+              btnRand.addEventListener('click', () => {
+                const origemSel = document.getElementById('edit-per-origem');
+                const aparSel = document.getElementById('edit-per-aparencia');
+                const segSel = document.getElementById('edit-per-segredo');
+
+                const randomizeSelect = (el) => {
+                  if (!el) return;
+                  const opts = Array.from(el.options).filter(o => !o.disabled);
+                  if (!opts.length) return;
+                  const choice = opts[Math.floor(Math.random() * opts.length)];
+                  el.value = choice.value;
+                };
+
+                randomizeSelect(origemSel);
+                randomizeSelect(aparSel);
+                randomizeSelect(segSel);
+              });
+            }
+        };
+
+        const carregarPersonagem = () => {
+          fetch(`/api/personagens/${personagemId}/?t=${Date.now()}`)
+            .then(r => r.json())
+            .then(p => {
+              renderPersonagemModal(p, assentamentosCache || []);
+            });
+        };
+
+        if (assentamentosCache) {
+          carregarPersonagem();
+        } else {
+          fetch(`/api/assentamentos/?mapa=${MAP_ID}`)
+            .then(r => r.json())
+            .then(data => {
+              assentamentosCache = data.results || data;
+              carregarPersonagem();
+            });
+        }
         return;
       }
 
@@ -574,6 +670,35 @@
             <input id="per-nome" type="text" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;" />
             <label>Raça</label>
             <input id="per-raca" type="text" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;" />
+            <label>Aparência</label>
+            <select id="per-aparencia" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;">
+              <option value="1">Ostenta Joias Diferenciadas</option>
+              <option value="2">Roupas Diferenciadas (Chamativas, Estrangeiras, Formais ou Trapos)</option>
+              <option value="3">Dispositivo Auxiliar de Marcha elegante (Bengala, cadeira de rodas/flutuante, tala/exoesqueleto)</option>
+              <option value="4">Cicatriz Marcante</option>
+              <option value="5">Olhos de cor incomum (ou de 2 cores diferentes)</option>
+              <option value="6">Tatuagens/Piercings</option>
+              <option value="7">Marca de Nascença</option>
+              <option value="8">Cabelos de cor incomum</option>
+              <option value="9">Careca OU Barba/Cabelo trançado</option>
+              <option value="10">Nariz distinto (grande/pequeno ou quebrado ou bulboso)</option>
+              <option value="11">Postura distinta (Encurvado ou Rígido)</option>
+              <option value="12">Extremamente belo/feio</option>
+            </select>
+            <label>Segredo</label>
+            <select id="per-segredo" style="width:100%;padding:.4rem .5rem;border:1px solid #d1d5db;border-radius:8px;margin-bottom:.5rem;">
+              <option value="1">Disfarçado, ocultando identidade ou aspecto específico da aparência</option>
+              <option value="2">Planejando/Executando/Escondendo um crime</option>
+              <option value="3">Esta pessoa ou a família dela foi ameaçada de morte caso deixe de fazer algo</option>
+              <option value="4">Magicamente influenciada a se comportar de determinada forma</option>
+              <option value="5">Terrivelmente doente ou acometido por dor crônica</option>
+              <option value="6">Se sente responsável pela morte/infortúnio de alguém</option>
+              <option value="7">Prestes a falir catastroficamente</option>
+              <option value="8">Desesperadamente carente ou nutrindo paixão não correspondida</option>
+              <option value="9">Nutrindo uma ambição poderosa</option>
+              <option value="10">Profundamente insatisfeito/deprimido</option>
+            </select>
+            <button type="button" id="per-btn-randomizar-criacao" style="margin-top:.25rem;align-self:flex-start;padding:.25rem .6rem;border-radius:6px;border:1px solid #d1d5db;background:#e5e7eb;cursor:pointer;font-size:.8rem;">Randomizar características</button>
           `;
 
           openModal({
@@ -581,11 +706,33 @@
             bodyHtml,
             context: { type: 'personagem', assentamentoId: parseInt(assentamentoId, 10), popup: e.popup }
           });
+
+          // Ativa randomização na criação (aparência/segredo) após o modal abrir
+          setTimeout(() => {
+            const btnRandCriacao = document.getElementById('per-btn-randomizar-criacao');
+            if (btnRandCriacao) {
+              btnRandCriacao.addEventListener('click', () => {
+                const aparSel = document.getElementById('per-aparencia');
+                const segSel = document.getElementById('per-segredo');
+
+                const randomizeSelect = (el) => {
+                  if (!el) return;
+                  const opts = Array.from(el.options).filter(o => !o.disabled);
+                  if (!opts.length) return;
+                  const choice = opts[Math.floor(Math.random() * opts.length)];
+                  el.value = choice.value;
+                };
+
+                randomizeSelect(aparSel);
+                randomizeSelect(segSel);
+              });
+            }
+          }, 0);
         }
       };
     });
 
-    // Salvar do modal (Loja / Personagem)
+    // Salvar do modal (Loja / Personagem / Detalhes)
     modalSave.addEventListener('click', () => {
       if (!currentModalContext) return;
       const { type, assentamentoId, personagemId, lojaId, popup } = currentModalContext;
@@ -628,14 +775,16 @@
       if (type === 'personagem') {
         const nome = (document.getElementById('per-nome') || {}).value?.trim();
         const raca = (document.getElementById('per-raca') || {}).value?.trim() || 'Humano';
+        const aparencia = (document.getElementById('per-aparencia') || {}).value || '1';
+        const segredo = (document.getElementById('per-segredo') || {}).value || '1';
         if (!nome) return;
 
         const payload = {
           nome,
           raca,
           origem: assentamentoId,
-          aparencia: '1',
-          segredo: '1'
+          aparencia,
+          segredo
         };
 
         fetch('/api/personagens/', {
@@ -655,6 +804,34 @@
         })
         .catch(err => {
           alert('Erro ao criar personagem: ' + err.message);
+        });
+      }
+
+      if (type === 'detalhe-personagem') {
+        const nome = (document.getElementById('edit-per-nome') || {}).value?.trim();
+        const raca = (document.getElementById('edit-per-raca') || {}).value?.trim();
+        const origem = (document.getElementById('edit-per-origem') || {}).value;
+        const aparencia = (document.getElementById('edit-per-aparencia') || {}).value;
+        const segredo = (document.getElementById('edit-per-segredo') || {}).value;
+        if (!nome) return;
+
+        const payload = { nome, raca, aparencia, segredo };
+        if (origem) {
+          payload.origem = parseInt(origem, 10);
+        }
+
+        fetch(`/api/personagens/${personagemId}/`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
+          body: JSON.stringify(payload)
+        })
+        .then(r => r.json().then(j => [r.ok, j]))
+        .then(([ok, data]) => {
+          if (!ok) throw new Error(typeof data === 'string' ? data : JSON.stringify(data));
+          closeModal();
+        })
+        .catch(err => {
+          alert('Erro ao salvar personagem: ' + err.message);
         });
       }
 

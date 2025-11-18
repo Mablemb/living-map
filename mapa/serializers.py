@@ -19,6 +19,10 @@ class BiomaSerializer(serializers.ModelSerializer):
         read_only_fields = ['largura','altura']
         
 class PersonagemSerializer(serializers.ModelSerializer):
+    aparencia_display = serializers.CharField(source='get_aparencia_display', read_only=True)
+    segredo_display = serializers.CharField(source='get_segredo_display', read_only=True)
+    origem_nome = serializers.CharField(source='origem.nome', read_only=True)
+
     class Meta:
         model = Personagem
         fields = '__all__'

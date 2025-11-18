@@ -75,7 +75,7 @@ class Personagem(models.Model):
     Raça []
     Assentamento de Origem [1 assentamento]
     Aparencia [1 ou 2 opções]
-    Segredos [1 opção]
+            raca = models.CharField(max_length=60, blank=False, null=False)
     '''
 
     APARENCIA = (
@@ -107,7 +107,7 @@ class Personagem(models.Model):
     )   
 
     nome = models.CharField(max_length=120, unique=True, blank = False, null = False)
-    raca = models.CharField(max_length=60, unique=True, blank = False, null = False)
+    raca = models.CharField(max_length=60, blank = False, null = False)
     origem = models.ForeignKey('Assentamento',on_delete = models.CASCADE)
     aparencia = models.CharField(max_length = 2, choices = APARENCIA, blank = False, null = False, default = '1')
     segredo = models.CharField(max_length = 2, choices = SEGREDO, blank = False, null = False, default = '1')

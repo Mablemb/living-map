@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Comando para iniciar o servidor Django com Gunicorn no Render
-CMD ["gunicorn", "living_map.wsgi:application", "--bind", "0.0.0.0:${PORT}"]
+CMD ["gunicorn", "setup.wsgi:application", "--bind", "0.0.0.0:${PORT}"]

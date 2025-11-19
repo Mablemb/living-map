@@ -11,5 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia o restante do código
 COPY . .
 
-# Comando padrão pode ser sobrescrito pelo docker-compose
-# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Comando para iniciar o servidor Django com Gunicorn no Render
+CMD ["gunicorn", "living_map.wsgi:application", "--bind", "0.0.0.0:${PORT}"]

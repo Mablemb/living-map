@@ -11,5 +11,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia o restante do código
 COPY . .
 
-# Comando para iniciar o servidor Django com Gunicorn no Render
-CMD gunicorn setup.wsgi:application --bind 0.0.0.0:$PORT
+# Comando padrão: script de entrada que roda migrações e depois o Gunicorn
+CMD ["./entrypoint.sh"]

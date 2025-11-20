@@ -32,7 +32,10 @@
     <a href="{% url 'map_list' %}">← Meus Mapas</a>
     <div style="flex:1">{{ mapa.nome }}</div>
     <a href="{% url 'bioma_editor' mapa.id %}" style="margin-right:1rem;color:#93c5fd;">Editar Biomas</a>
-    <a href="{% url 'logout' %}">Sair</a>
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" style="background:none;border:none;color:white;cursor:pointer;text-decoration:underline;padding:0;font-size:1rem;">Sair</button>
+    </form>
   </header>
 
   <div id="map"></div>

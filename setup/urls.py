@@ -32,6 +32,7 @@ from mapa.views import (
     map_delete,
     bioma_editor,
     s3_health,
+    custom_logout,
 )
 
 router = routers.DefaultRouter()
@@ -48,7 +49,7 @@ urlpatterns = [
     # Registro de usuário
     path('accounts/', include('mapa.urls')),
     # Logout direto na raiz
-    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('logout/', custom_logout, name='logout'),
     # API
     path('api/', include(router.urls)),
     # HTML pages

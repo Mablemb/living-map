@@ -20,6 +20,7 @@ from django.views.decorators.http import require_http_methods
 from django.urls import reverse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
 import logging
 import boto3
 from botocore.exceptions import ClientError
@@ -221,3 +222,8 @@ def register(request):
         'error_message': error_message,
     }
     return render(request, 'registration/register.html', context)
+
+def custom_logout(request):
+    """Log out the user and redirect to login page."""
+    auth_logout(request)
+    return redirect('login')

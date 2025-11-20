@@ -25,7 +25,10 @@
   <header>
     <a href="{% url 'map_editor' mapa.id %}">← Voltar</a>
     <div style="flex:1">Biomas de {{ mapa.nome }}</div>
-    <a href="{% url 'logout' %}">Sair</a>
+    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" style="background:none;border:none;color:white;cursor:pointer;text-decoration:underline;padding:0;font-size:1rem;">Sair</button>
+    </form>
   </header>
   <div id="map"></div>
   <div class="panel">

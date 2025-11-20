@@ -118,14 +118,18 @@ class MapaMundoViewSet(viewsets.ModelViewSet):
 @login_required
 def maps_list(request):
     """Página inicial: lista mapas, permite criar e deletar."""
+    error_message = None
     if request.method == 'POST' and request.FILES.get('imagem'):
         nome = request.POST.get('nome') or 'Mapa sem nome'
         imagem = request.FILES['imagem']
-        MapaMundo.objects.create(nome=nome, imagem=imagem)
-        return redirect('map_list')
+        try:
+            MapaMundo.objects.create(nome=nome, imagem=imagem)
+            return redirect('map_list')
+        except Exception as e:
+            error_message = f"Falha ao enviar imagem: {e}"
 
     mapas = MapaMundo.objects.all().order_by('-criado_em')
-    return render(request, 'mapa/map_list.html', {'mapas': mapas})
+    return render(request, 'mapa/map_list.html', {'mapas': mapas, 'error_message': error_message})
 
 
 @require_http_methods(["POST"])

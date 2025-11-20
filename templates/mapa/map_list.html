@@ -36,6 +36,11 @@
 
   <div class="container">
     <h2>Novo mapa</h2>
+    {% if error_message %}
+      <div style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;padding:.6rem 1rem;border-radius:8px;margin-bottom:.8rem;">
+        {{ error_message }}
+      </div>
+    {% endif %}
     <form class="inline" method="post" enctype="multipart/form-data">
       {% csrf_token %}
       <input type="text" name="nome" placeholder="Nome do mapa" required />

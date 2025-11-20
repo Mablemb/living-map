@@ -23,8 +23,8 @@ try:
     else:
         print("Bucket is empty.")
 
-    print("Attempting upload...")
-    s3.put_object(Bucket=bucket_name, Key='test_upload.txt', Body=b'Hello S3')
+    print("Attempting upload to media/mapas/...")
+    s3.put_object(Bucket=bucket_name, Key='media/mapas/test_upload.txt', Body=b'Hello S3')
     print("Upload successful.")
 except Exception as e:
     print(f"Error: {e}")

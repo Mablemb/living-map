@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'mapa',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -75,7 +76,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'setup.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -118,15 +118,41 @@ USE_I18N = True
 
 USE_TZ = True
 
+############################################
+# AWS S3 CONFIG (all loaded from environment)
+############################################
+
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME', 'change-me-bucket')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')  # e.g. 'us-east-1'
+AWS_S3_ENDPOINT_URL = os.getenv('AWS_S3_ENDPOINT_URL')  # custom endpoint (optional)
+AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN', f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com')
+AWS_DEFAULT_ACL = os.getenv('AWS_DEFAULT_ACL', 'public-read')
+AWS_S3_OBJECT_PARAMETERS = {
+    'CacheControl': os.getenv('AWS_S3_CACHE_CONTROL', 'max-age=86400')
+}
+AWS_QUERYSTRING_AUTH = os.getenv('AWS_QUERYSTRING_AUTH', 'False').lower() in ('false','0','no')
+AWS_HEADERS = {
+    'Access-Control-Allow-Origin': os.getenv('AWS_CORS_ALLOW_ORIGIN', '*')
+}
+
+# Separate locations for static and media inside the bucket
+AWS_STATIC_LOCATION = os.getenv('AWS_STATIC_LOCATION', 'static')
+AWS_MEDIA_LOCATION = os.getenv('AWS_MEDIA_LOCATION', 'media')
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+DEFAULT_FILE_STORAGE = 'setup.storage_backends.MediaStorage'
+STATICFILES_STORAGE = 'setup.storage_backends.StaticStorage'
+
+STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_STATIC_LOCATION}/'
+
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Arquivos de mídia (upload de mapas)
-MEDIA_URL = '/media/'
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_MEDIA_LOCATION}/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # Login / Redirects

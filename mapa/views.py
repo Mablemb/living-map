@@ -23,6 +23,7 @@ from django.contrib.auth import login as auth_login
 import logging
 import boto3
 from botocore.exceptions import ClientError
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -128,13 +129,14 @@ def maps_list(request):
         nome = request.POST.get('nome') or 'Mapa sem nome'
         imagem = request.FILES['imagem']
         try:
-            MapaMundo.objects.create(nome=nome, imagem=imagem)
-            # Log último mapa e URL real após salvar
-            ultimo = MapaMundo.objects.order_by('-id').first()
-            if ultimo and ultimo.imagem:
-                logger.warning("Mapa salvo. nome=%s chave=%s url=%s", ultimo.nome, ultimo.imagem.name, ultimo.imagem.url)
+            novo = MapaMundo.objects.create(nome=nome, imagem=imagem)
+            try:
+                logger.warning("Mapa salvo nome=%s chave=%s url=%s", novo.nome, novo.imagem.name, getattr(novo.imagem, 'url', 'SEM_URL'))
+            except Exception as log_err:
+                logger.error("Falha ao logar URL da imagem: %s", log_err)
             return redirect('map_list')
         except Exception as e:
+            logger.error("Erro ao salvar imagem do mapa: %s", e)
             error_message = f"Falha ao enviar imagem: {e}"
 
     mapas = MapaMundo.objects.all().order_by('-criado_em')

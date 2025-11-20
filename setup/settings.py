@@ -144,8 +144,14 @@ AWS_MEDIA_LOCATION = os.getenv('AWS_MEDIA_LOCATION', 'media')
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-DEFAULT_FILE_STORAGE = 'setup.storage_backends.MediaStorage'
-STATICFILES_STORAGE = 'setup.storage_backends.StaticStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "setup.storage_backends.MediaStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "setup.storage_backends.StaticStorage",
+    },
+}
 
 STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_STATIC_LOCATION}/'
 

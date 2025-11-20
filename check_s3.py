@@ -26,5 +26,14 @@ try:
     print("Attempting upload to media/mapas/...")
     s3.put_object(Bucket=bucket_name, Key='media/mapas/test_upload.txt', Body=b'Hello S3')
     print("Upload successful.")
+
+    print("Listing objects in media/mapas/...")
+    response = s3.list_objects_v2(Bucket=bucket_name, Prefix='media/mapas/')
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            print(f" - {obj['Key']}")
+    else:
+        print("No objects found in media/mapas/")
+
 except Exception as e:
     print(f"Error: {e}")

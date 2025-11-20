@@ -20,6 +20,11 @@ from django.views.decorators.http import require_http_methods
 from django.urls import reverse
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login as auth_login
+import logging
+import boto3
+from botocore.exceptions import ClientError
+
+logger = logging.getLogger(__name__)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -124,12 +129,45 @@ def maps_list(request):
         imagem = request.FILES['imagem']
         try:
             MapaMundo.objects.create(nome=nome, imagem=imagem)
+            # Log último mapa e URL real após salvar
+            ultimo = MapaMundo.objects.order_by('-id').first()
+            if ultimo and ultimo.imagem:
+                logger.warning("Mapa salvo. nome=%s chave=%s url=%s", ultimo.nome, ultimo.imagem.name, ultimo.imagem.url)
             return redirect('map_list')
         except Exception as e:
             error_message = f"Falha ao enviar imagem: {e}"
 
     mapas = MapaMundo.objects.all().order_by('-criado_em')
     return render(request, 'mapa/map_list.html', {'mapas': mapas, 'error_message': error_message})
+
+
+@login_required
+def s3_health(request):
+    """Retorna informações de saúde do backend S3 para diagnóstico rápido."""
+    info = {}
+    from django.conf import settings
+    info['DEFAULT_FILE_STORAGE'] = settings.DEFAULT_FILE_STORAGE
+    info['STATICFILES_STORAGE'] = settings.STATICFILES_STORAGE
+    info['AWS_BUCKET'] = settings.AWS_STORAGE_BUCKET_NAME
+    info['AWS_DOMAIN'] = settings.AWS_S3_CUSTOM_DOMAIN
+    info['AWS_MEDIA_LOCATION'] = settings.AWS_MEDIA_LOCATION
+    info['AWS_QUERYSTRING_AUTH'] = settings.AWS_QUERYSTRING_AUTH
+    ultimo = MapaMundo.objects.order_by('-id').first()
+    if ultimo and ultimo.imagem:
+        info['ultimo_mapa_nome'] = ultimo.nome
+        info['ultimo_mapa_chave'] = ultimo.imagem.name
+        try:
+            info['ultimo_mapa_url'] = ultimo.imagem.url
+        except Exception as e:
+            info['ultimo_mapa_url_error'] = str(e)
+        # Tenta HEAD no objeto
+        try:
+            s3 = boto3.client('s3', region_name=os.getenv('AWS_S3_REGION_NAME'))
+            s3.head_object(Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=ultimo.imagem.name)
+            info['head_object'] = 'OK'
+        except ClientError as ce:
+            info['head_object_error'] = str(ce)
+    return Response(info)
 
 
 @require_http_methods(["POST"])

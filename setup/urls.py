@@ -31,6 +31,7 @@ from mapa.views import (
     map_editor,
     map_delete,
     bioma_editor,
+    s3_health,
 )
 
 router = routers.DefaultRouter()
@@ -55,6 +56,7 @@ urlpatterns = [
     path('mapas/<int:mapa_id>/', map_editor, name='map_editor'),
     path('mapas/<int:mapa_id>/biomas/', bioma_editor, name='bioma_editor'),
     path('mapas/<int:mapa_id>/delete/', map_delete, name='map_delete'),
+    path('health/s3/', s3_health, name='s3_health'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Serve media in production if no reverse proxy is configured

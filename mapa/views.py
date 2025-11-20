@@ -18,6 +18,8 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login as auth_login
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -147,3 +149,17 @@ def bioma_editor(request, mapa_id: int):
     """Página para desenhar polígonos de biomas sobre o mapa usando Leaflet.draw."""
     mapa = get_object_or_404(MapaMundo, pk=mapa_id)
     return render(request, 'mapa/bioma_editor.html', {'mapa': mapa})
+
+
+def register(request):
+    """Tela de registro de novo usuário usando UserCreationForm padrão."""
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            auth_login(request, user)
+            return redirect('map_list')
+    else:
+        form = UserCreationForm()
+
+    return render(request, 'registration/register.html', {'form': form})

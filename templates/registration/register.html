@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registrar - RPG Manager</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#f6f7fb; margin:0; display:flex; min-height:100vh; align-items:center; justify-content:center; }
+    .card { background:#fff; padding:2rem; border-radius:12px; width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+    h1 { margin:0 0 1rem; font-size:1.3rem; }
+    label { display:block; margin:.5rem 0 .25rem; color:#333; }
+    input[type="text"], input[type="password"], input[type="email"] { width:100%; padding:.6rem .7rem; border:1px solid #ddd; border-radius:8px; }
+    button { margin-top:1rem; width:100%; padding:.7rem; background:#16a34a; border:none; color:#fff; border-radius:8px; cursor:pointer; }
+    button:hover { background:#15803d; }
+    .errorlist { color:#b91c1c; margin:0 0 .5rem; padding:0; list-style:none; font-size:.9rem; }
+    .footer { margin-top:1rem; font-size:.9rem; text-align:center; }
+    a { color:#2563eb; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Criar conta</h1>
+    <form method="post" action="">
+      {% csrf_token %}
+
+      {{ form.non_field_errors }}
+
+      {% for field in form.visible_fields %}
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {{ field.errors }}
+      {% endfor %}
+
+      <button type="submit">Registrar</button>
+    </form>
+    <div class="footer">
+      Já tem conta? <a href="{% url 'login' %}">Entrar</a>
+    </div>
+  </div>
+</body>
+</html>

@@ -31,6 +31,10 @@
       <button type="submit">Login</button>
       <input type="hidden" name="next" value="{{ next }}" />
     </form>
+    <p style="margin-top:1rem; font-size:.9rem; text-align:center;">
+      Ainda não tem conta?
+      <a href="{% url 'register' %}">Criar conta</a>
+    </p>
   </div>
 </body>
 </html>

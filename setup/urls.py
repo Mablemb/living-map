@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.contrib.auth import views as auth_views
 from rest_framework import routers
 from django.conf import settings
 from django.conf.urls.static import static
@@ -42,6 +43,10 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # Auth (login/logout/password) views
     path('accounts/', include('django.contrib.auth.urls')),
+    # Registro de usuário
+    path('accounts/', include('mapa.urls')),
+    # Logout direto na raiz
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     # API
     path('api/', include(router.urls)),
     # HTML pages

@@ -22,6 +22,9 @@
 <body>
   <div class="card">
     <h1>Criar conta</h1>
+    {% if error_message %}
+      <div class="errorlist" style="margin-bottom:1rem;">{{ error_message }}</div>
+    {% endif %}
     <form method="post" action="">
       {% csrf_token %}
 

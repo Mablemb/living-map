@@ -153,13 +153,23 @@ def bioma_editor(request, mapa_id: int):
 
 def register(request):
     """Tela de registro de novo usuário usando UserCreationForm padrão."""
+    error_message = None
+
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            auth_login(request, user)
-            return redirect('map_list')
+        try:
+            if form.is_valid():
+                user = form.save()
+                auth_login(request, user)
+                return redirect('map_list')
+        except Exception as e:
+            # Em produção, exibe o erro para facilitar o diagnóstico
+            error_message = f"Ocorreu um erro ao criar o usuário: {e}"
     else:
         form = UserCreationForm()
 
-    return render(request, 'registration/register.html', {'form': form})
+    context = {
+        'form': form,
+        'error_message': error_message,
+    }
+    return render(request, 'registration/register.html', context)

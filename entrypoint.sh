@@ -12,6 +12,9 @@ mkdir -p media staticfiles
 echo "==> Django settings quick debug"
 python - <<'PY'
 import os
+import django
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "setup.settings")
+django.setup()
 from django.conf import settings
 print("DEBUG=", settings.DEBUG)
 print("ALLOWED_HOSTS=", settings.ALLOWED_HOSTS)

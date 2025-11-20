@@ -20,6 +20,7 @@ from django.contrib.auth import views as auth_views
 from rest_framework import routers
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve as static_serve
 from mapa.views import (
     BiomaViewSet,
     PersonagemViewSet,
@@ -55,3 +56,15 @@ urlpatterns = [
     path('mapas/<int:mapa_id>/biomas/', bioma_editor, name='bioma_editor'),
     path('mapas/<int:mapa_id>/delete/', map_delete, name='map_delete'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# Serve media in production if no reverse proxy is configured
+if not settings.DEBUG and settings.MEDIA_URL:
+    # This is a lightweight fallback. Prefer Nginx or a CDN in production.
+    media_url = settings.MEDIA_URL.lstrip('/')
+    urlpatterns += [
+        path(f"{media_url}<path:path>", static_serve, {"document_root": settings.MEDIA_ROOT}),
+    ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

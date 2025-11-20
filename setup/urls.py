@@ -56,7 +56,8 @@ urlpatterns = [
     path('mapas/<int:mapa_id>/', map_editor, name='map_editor'),
     path('mapas/<int:mapa_id>/biomas/', bioma_editor, name='bioma_editor'),
     path('mapas/<int:mapa_id>/delete/', map_delete, name='map_delete'),
-    path('health/s3/', s3_health, name='s3_health'),
+    path('health/s3/', s3_health, name='s3_health'),      # com barra
+    path('health/s3', s3_health, name='s3_health_noslash'),  # sem barra para evitar 404
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Serve media in production if no reverse proxy is configured

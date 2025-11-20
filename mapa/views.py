@@ -126,6 +126,10 @@ def maps_list(request):
     """Página inicial: lista mapas, permite criar e deletar."""
     error_message = None
     if request.method == 'POST' and request.FILES.get('imagem'):
+        if not request.user.is_authenticated:
+            # Isto normalmente não acontece porque a view exige login, mas logamos caso algo mude.
+            logger.warning("Upload sem autenticação ignorado")
+            return redirect('login')
         nome = request.POST.get('nome') or 'Mapa sem nome'
         imagem = request.FILES['imagem']
         try:
